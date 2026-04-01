@@ -1,0 +1,109 @@
+{% extends "imageapp/base.html" %}
+{% block page_title %}Generate Image{% endblock %}
+
+{% block app_content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+    <!-- Generation Form -->
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <h2 class="text-lg font-semibold mb-4">Generate Image</h2>
+        <form id="image-generation-form" class="space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label for="provider-select" class="block text-sm font-medium text-gray-300 mb-1">Provider</label>
+                <select name="provider" id="provider-select"
+                        class="w-full rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                    {% for provider in providers %}
+                    <option value="{{ provider.key }}">{{ provider.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="prompt-input" class="block text-sm font-medium text-gray-300 mb-1">Prompt</label>
+                <textarea name="prompt" id="prompt-input" rows="4"
+                          class="w-full rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500"
+                          placeholder="Describe the image you want to create..."></textarea>
+            </div>
+
+            <div>
+                <label for="negative-prompt-input" class="block text-sm font-medium text-gray-300 mb-1">Negative Prompt (optional)</label>
+                <input type="text" name="negative_prompt" id="negative-prompt-input"
+                       class="w-full rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm"
+                       placeholder="What to avoid in the image...">
+            </div>
+
+            <button type="submit" id="generate-button"
+                    class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition">
+                Generate Image
+            </button>
+        </form>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
+        <h2 class="text-lg font-semibold mb-4">Preview</h2>
+        <div id="image-preview-container" class="flex items-center justify-center min-h-[320px] rounded-lg bg-gray-800 border border-dashed border-gray-700">
+            <p id="preview-placeholder" class="text-gray-500 text-sm">Generated image will appear here</p>
+            <img id="generated-image-preview" class="hidden max-w-full rounded-lg" alt="Generated image">
+        </div>
+        <div id="generation-status" class="mt-4 text-sm text-gray-400"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('image-generation-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const form_data = Object.fromEntries(new FormData(this));
+    const generate_button = document.getElementById('generate-button');
+    const generation_status = document.getElementById('generation-status');
+    const preview_placeholder = document.getElementById('preview-placeholder');
+    const generated_image_preview = document.getElementById('generated-image-preview');
+
+    generate_button.disabled = true;
+    generate_button.textContent = 'Generating...';
+    generation_status.textContent = 'Submitting generation request...';
+    generated_image_preview.classList.add('hidden');
+    preview_placeholder.classList.remove('hidden');
+    preview_placeholder.textContent = 'Generating your image...';
+
+    try {
+        const response = await fetch('{% url "imageapp:api_generate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': form_data.csrfmiddlewaretoken,
+            },
+            body: JSON.stringify({
+                prompt: form_data.prompt,
+                negative_prompt: form_data.negative_prompt || '',
+                provider: form_data.provider,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.status === 'completed') {
+            generation_status.textContent = `Image generated successfully (ID: ${result.id})`;
+            preview_placeholder.classList.add('hidden');
+            generated_image_preview.src = result.image_url;
+            generated_image_preview.classList.remove('hidden');
+        } else {
+            generation_status.textContent = `Error: ${result.error || JSON.stringify(result)}`;
+            preview_placeholder.textContent = 'Generation failed. Try again.';
+        }
+    } catch (request_error) {
+        generation_status.textContent = `Request failed: ${request_error.message}`;
+        preview_placeholder.textContent = 'Request failed. Check your connection.';
+    } finally {
+        generate_button.disabled = false;
+        generate_button.textContent = 'Generate Image';
+    }
+});
+</script>
+{% endblock %}

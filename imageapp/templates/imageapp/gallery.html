@@ -1,0 +1,34 @@
+{% extends "imageapp/base.html" %}
+{% block page_title %}Image Gallery{% endblock %}
+
+{% block app_content %}
+<h2 class="text-lg font-semibold mb-6">Generated Images</h2>
+
+{% if images %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for image in images %}
+    <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        {% if image.image %}
+        <img src="{{ image.image.url }}" alt="{{ image.prompt|truncatewords:10 }}" class="w-full h-64 object-cover">
+        {% else %}
+        <div class="w-full h-64 bg-gray-800 flex items-center justify-center">
+            <span class="text-xs text-gray-500 uppercase">{{ image.status }}</span>
+        </div>
+        {% endif %}
+        <div class="p-4">
+            <p class="text-sm text-gray-300 line-clamp-2">{{ image.prompt }}</p>
+            <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
+                <span>{{ image.get_provider_display }}</span>
+                <span>{{ image.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-16 text-gray-500">
+    <p class="text-lg">No images generated yet.</p>
+    <a href="{% url 'imageapp:generate' %}" class="mt-3 inline-block text-brand-500 hover:text-brand-400 text-sm">Generate your first image</a>
+</div>
+{% endif %}
+{% endblock %}

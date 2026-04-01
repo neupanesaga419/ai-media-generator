@@ -1,0 +1,26 @@
+# Environment variables (API keys)
+.env
+
+# Database
+db.sqlite3
+
+# Virtual environment
+venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Generated media (user uploads, AI outputs)
+media/
+
+# Django collected static (from collectstatic)
+staticfiles/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
