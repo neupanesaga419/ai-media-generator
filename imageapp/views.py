@@ -6,73 +6,96 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from .ai import IMAGE_PROVIDERS, get_image_generator
-from .model_cache import get_all_provider_models
+from .ai import IMAGE_PROVIDERS, create_image_generator
+from .model_cache import get_all_cached_provider_models
 from .models import GeneratedImage
 
 
-def generate_page(request):
-    """Render the image generation form page."""
-    provider_models = get_all_provider_models()
+def _build_provider_context() -> tuple[list[dict], str]:
+    """Build provider list and JSON model map for template rendering.
 
-    providers = []
-    for provider_key, provider_class in IMAGE_PROVIDERS.items():
-        providers.append({
+    Returns:
+        A tuple of (providers_list, provider_models_json).
+    """
+    cached_models_by_provider = get_all_cached_provider_models()
+
+    providers_list = [
+        {
             "key": provider_key,
-            "name": provider_class.description,
-            "models": provider_models.get(provider_key, []),
-        })
+            "name": provider_class.display_name,
+            "models": cached_models_by_provider.get(provider_key, []),
+        }
+        for provider_key, provider_class in IMAGE_PROVIDERS.items()
+    ]
 
     provider_models_json = json.dumps({
         provider["key"]: provider["models"]
-        for provider in providers
+        for provider in providers_list
     })
 
+    return providers_list, provider_models_json
+
+
+# -- Page views ---------------------------------------------------------------
+
+
+def generate_page(request):
+    """Render the image generation form."""
+    providers_list, provider_models_json = _build_provider_context()
     return render(request, "imageapp/generate.html", {
-        "providers": providers,
+        "providers": providers_list,
         "provider_models_json": provider_models_json,
     })
 
 
 def gallery_page(request):
-    """Show all generated images."""
-    images = GeneratedImage.objects.filter(status="completed")
-    return render(request, "imageapp/gallery.html", {"images": images})
+    """Show all successfully generated images."""
+    completed_images = GeneratedImage.objects.filter(status="completed")
+    return render(request, "imageapp/gallery.html", {
+        "images": completed_images,
+    })
+
+
+# -- API endpoints ------------------------------------------------------------
 
 
 @require_POST
 def api_generate_image(request):
-    """API endpoint: generate an image and return the result."""
+    """Accept a generation request, run the provider, and return the result."""
     try:
-        body = json.loads(request.body)
+        request_body = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON body"}, status=400)
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
 
-    prompt = body.get("prompt", "").strip()
+    prompt = request_body.get("prompt", "").strip()
     if not prompt:
-        return JsonResponse({"error": "Prompt is required"}, status=400)
+        return JsonResponse({"error": "Prompt is required."}, status=400)
 
-    provider_name = body.get("provider", "google_imagen")
-    model_name = body.get("model_name", "")
+    provider_name = request_body.get("provider", "google_imagen")
+    model_name = request_body.get("model_name", "")
+    negative_prompt = request_body.get("negative_prompt", "")
 
     image_record = GeneratedImage.objects.create(
         prompt=prompt,
-        negative_prompt=body.get("negative_prompt", ""),
+        negative_prompt=negative_prompt,
         provider=provider_name,
         model_name=model_name,
         status="processing",
     )
 
     try:
-        generator = get_image_generator(provider_name)
+        generator = create_image_generator(provider_name)
+
         generation_kwargs = {}
         if model_name:
             generation_kwargs["model_name"] = model_name
 
-        image_bytes = generator.generate(prompt, **generation_kwargs)
+        generated_image_bytes = generator.generate(prompt, **generation_kwargs)
 
         filename = f"{provider_name}_{uuid.uuid4().hex[:8]}.png"
-        image_record.image.save(filename, ContentFile(image_bytes), save=False)
+        image_record.image.save(
+            filename, ContentFile(generated_image_bytes), save=False
+        )
         image_record.status = "completed"
         image_record.save()
 
@@ -98,15 +121,6 @@ def api_generate_image(request):
 
 
 def api_list_providers(request):
-    """API endpoint: list available image generation providers and their cached models."""
-    provider_models = get_all_provider_models()
-    providers_list = []
-
-    for provider_key, provider_class in IMAGE_PROVIDERS.items():
-        providers_list.append({
-            "key": provider_key,
-            "name": provider_class.description,
-            "models": provider_models.get(provider_key, []),
-        })
-
+    """Return available providers and their cached models as JSON."""
+    providers_list, _ = _build_provider_context()
     return JsonResponse({"providers": providers_list})

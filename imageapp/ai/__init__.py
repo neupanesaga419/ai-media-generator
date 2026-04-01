@@ -6,19 +6,22 @@ IMAGE_PROVIDERS = {
     "grok": GrokImageGenerator,
 }
 
-# Maps provider name to the env var that holds its API key
-PROVIDER_API_KEY_ENV_VARS = {
-    "google_imagen": "GOOGLE_API_KEY",
-    "grok": "XAI_API_KEY",
-}
 
-
-def get_image_generator(provider_name: str):
-    """Factory: get an image generator by provider name."""
+def get_provider_api_key_env_variable(provider_name: str) -> str:
+    """Return the environment variable name for a provider's API key."""
     provider_class = IMAGE_PROVIDERS.get(provider_name)
     if provider_class is None:
+        return ""
+    return provider_class.api_key_env_variable
+
+
+def create_image_generator(provider_name: str):
+    """Factory: instantiate an image generator by provider name."""
+    provider_class = IMAGE_PROVIDERS.get(provider_name)
+    if provider_class is None:
+        available_providers = list(IMAGE_PROVIDERS.keys())
         raise ValueError(
             f"Unknown provider '{provider_name}'. "
-            f"Available: {list(IMAGE_PROVIDERS.keys())}"
+            f"Available: {available_providers}"
         )
     return provider_class()

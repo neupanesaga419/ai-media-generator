@@ -66,12 +66,9 @@
 
 {% block extra_scripts %}
 <script>
-// Provider-to-models mapping from the server
 const provider_models = {{ provider_models_json|safe }};
-
 const provider_select = document.getElementById('provider-select');
 const model_select = document.getElementById('model-select');
-
 const model_loading_hint = document.getElementById('model-loading-hint');
 
 function update_model_options() {
@@ -98,10 +95,7 @@ function update_model_options() {
     }
 }
 
-// Update models when provider changes
 provider_select.addEventListener('change', update_model_options);
-
-// Populate on page load
 update_model_options();
 
 document.getElementById('image-generation-form').addEventListener('submit', async function(event) {
