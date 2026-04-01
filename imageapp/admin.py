@@ -1,5 +1,12 @@
 from django.contrib import admin
-from .models import GeneratedImage
+from .models import CachedModel, GeneratedImage
+
+
+@admin.register(CachedModel)
+class CachedModelAdmin(admin.ModelAdmin):
+    list_display = ["provider", "model_id", "capability", "is_available", "fetched_at"]
+    list_filter = ["provider", "capability", "is_available"]
+    search_fields = ["model_id"]
 
 
 @admin.register(GeneratedImage)

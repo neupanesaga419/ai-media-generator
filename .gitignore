@@ -17,6 +17,9 @@ media/
 # Django collected static (from collectstatic)
 staticfiles/
 
+# Claude Code
+.claude
+
 # IDE
 .vscode/
 .idea/

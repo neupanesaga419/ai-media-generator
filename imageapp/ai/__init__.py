@@ -6,6 +6,12 @@ IMAGE_PROVIDERS = {
     "grok": GrokImageGenerator,
 }
 
+# Maps provider name to the env var that holds its API key
+PROVIDER_API_KEY_ENV_VARS = {
+    "google_imagen": "GOOGLE_API_KEY",
+    "grok": "XAI_API_KEY",
+}
+
 
 def get_image_generator(provider_name: str):
     """Factory: get an image generator by provider name."""

@@ -1,23 +1,37 @@
-import os
+import json
 import uuid
 
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from .ai import IMAGE_PROVIDERS, get_image_generator
+from .model_cache import get_all_provider_models
 from .models import GeneratedImage
 
 
 def generate_page(request):
     """Render the image generation form page."""
-    providers = [
-        {"key": provider_key, "name": provider_class.description}
-        for provider_key, provider_class in IMAGE_PROVIDERS.items()
-    ]
-    return render(request, "imageapp/generate.html", {"providers": providers})
+    provider_models = get_all_provider_models()
+
+    providers = []
+    for provider_key, provider_class in IMAGE_PROVIDERS.items():
+        providers.append({
+            "key": provider_key,
+            "name": provider_class.description,
+            "models": provider_models.get(provider_key, []),
+        })
+
+    provider_models_json = json.dumps({
+        provider["key"]: provider["models"]
+        for provider in providers
+    })
+
+    return render(request, "imageapp/generate.html", {
+        "providers": providers,
+        "provider_models_json": provider_models_json,
+    })
 
 
 def gallery_page(request):
@@ -29,8 +43,6 @@ def gallery_page(request):
 @require_POST
 def api_generate_image(request):
     """API endpoint: generate an image and return the result."""
-    import json
-
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -43,7 +55,6 @@ def api_generate_image(request):
     provider_name = body.get("provider", "google_imagen")
     model_name = body.get("model_name", "")
 
-    # Create a database record
     image_record = GeneratedImage.objects.create(
         prompt=prompt,
         negative_prompt=body.get("negative_prompt", ""),
@@ -60,7 +71,6 @@ def api_generate_image(request):
 
         image_bytes = generator.generate(prompt, **generation_kwargs)
 
-        # Save the generated image file
         filename = f"{provider_name}_{uuid.uuid4().hex[:8]}.png"
         image_record.image.save(filename, ContentFile(image_bytes), save=False)
         image_record.status = "completed"
@@ -72,6 +82,7 @@ def api_generate_image(request):
             "image_url": image_record.image.url,
             "prompt": image_record.prompt,
             "provider": image_record.provider,
+            "model_name": image_record.model_name,
         })
 
     except Exception as generation_error:
@@ -87,24 +98,15 @@ def api_generate_image(request):
 
 
 def api_list_providers(request):
-    """API endpoint: list available image generation providers and their models."""
+    """API endpoint: list available image generation providers and their cached models."""
+    provider_models = get_all_provider_models()
     providers_list = []
+
     for provider_key, provider_class in IMAGE_PROVIDERS.items():
         providers_list.append({
             "key": provider_key,
             "name": provider_class.description,
-            "models": provider_class().get_available_models()
-                if _can_instantiate(provider_class) else [],
-            "default_params": provider_class().get_default_params()
-                if _can_instantiate(provider_class) else {},
+            "models": provider_models.get(provider_key, []),
         })
+
     return JsonResponse({"providers": providers_list})
-
-
-def _can_instantiate(provider_class):
-    """Check if a provider can be instantiated (has valid API key)."""
-    try:
-        provider_class()
-        return True
-    except ValueError:
-        return False
