@@ -22,9 +22,7 @@ class GrokImageGenerator(BaseImageGenerator):
         self.api_key = self.get_api_key("XAI_API_KEY")
 
     def generate(self, prompt: str, **kwargs) -> bytes:
-        model_name = kwargs.get("model_name", "grok-2-image")
-        width = kwargs.get("width", 1024)
-        height = kwargs.get("height", 1024)
+        model_name = kwargs.get("model_name", "grok-imagine-image")
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -35,7 +33,7 @@ class GrokImageGenerator(BaseImageGenerator):
             "model": model_name,
             "prompt": prompt,
             "n": 1,
-            "size": f"{width}x{height}",
+            "response_format": "b64_json",
         }
 
         response = requests.post(
@@ -44,7 +42,12 @@ class GrokImageGenerator(BaseImageGenerator):
             json=payload,
             timeout=120,
         )
-        response.raise_for_status()
+
+        if not response.ok:
+            error_detail = response.text
+            raise RuntimeError(
+                f"xAI API error ({response.status_code}): {error_detail}"
+            )
 
         response_data = response.json()
         image_data = response_data["data"][0]
@@ -87,7 +90,4 @@ class GrokImageGenerator(BaseImageGenerator):
         return image_generation_models
 
     def get_default_params(self) -> dict:
-        return {
-            "width": 1024,
-            "height": 1024,
-        }
+        return {}
