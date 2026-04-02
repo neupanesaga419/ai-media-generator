@@ -19,6 +19,38 @@ class BaseImageGenerator(ABC):
             )
         return api_key
 
+    def _load_service_account(self):
+        service_account_var_name = "GOOGLE_SERVICE_ACCOUNT_PATH"
+        service_account = os.getenv(service_account_var_name,"")
+        if not service_account:
+            raise ValueError(
+                f"Service Account File Not found"
+                f"Set {service_account_var_name} in your .env file"
+            )
+        return service_account
+
+    def _load_project_id(self):
+        project_id_var = "GOOGLE_CLOUD_PROJECT"
+        project_id = os.getenv(project_id_var,"")
+        if not project_id:
+            raise ValueError(
+                f"Google Cloud Project ID not found"
+                f"Set {project_id_var} in your .env file"
+            )
+        return project_id
+
+
+    def _load_google_cloud_location(self):
+        location_var = "GOOGLE_CLOUD_LOCATION"
+        google_cloud_location = os.getenv(location_var,"")
+        if not google_cloud_location:
+            raise ValueError(
+                f"Google Cloud Location Not found"
+                f"Set {location_var} in your .env file"
+            )
+        return google_cloud_location
+    
+
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> bytes:
         """Generate an image from a text prompt. Returns raw PNG bytes."""
