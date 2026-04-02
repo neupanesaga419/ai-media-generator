@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from .ai import IMAGE_PROVIDERS, create_image_generator
 from .model_cache import get_all_cached_provider_models
 from .models import GeneratedImage
+from .prompt_constants import PROMPT_PRESETS
 
 
 def _build_provider_context() -> tuple[list[dict], str]:
@@ -42,9 +43,11 @@ def _build_provider_context() -> tuple[list[dict], str]:
 def generate_page(request):
     """Render the image generation form."""
     providers_list, provider_models_json = _build_provider_context()
+    prompt_presets_json = json.dumps(PROMPT_PRESETS)
     return render(request, "imageapp/generate.html", {
         "providers": providers_list,
         "provider_models_json": provider_models_json,
+        "prompt_presets_json": prompt_presets_json,
     })
 
 

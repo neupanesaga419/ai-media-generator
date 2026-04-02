@@ -31,10 +31,28 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Prompt Presets (optional)</label>
+                <div class="flex gap-2 mb-2">
+                    <select id="prompt-mode-select"
+                            class="w-1/3 rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">-- Generate or Edit --</option>
+                    </select>
+                    <select id="prompt-category-select"
+                            class="w-1/3 rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500" disabled>
+                        <option value="">-- Category --</option>
+                    </select>
+                    <select id="prompt-preset-select"
+                            class="w-1/3 rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500" disabled>
+                        <option value="">-- Prompt --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
                 <label for="prompt-input" class="block text-sm font-medium text-gray-300 mb-1">Prompt</label>
                 <textarea name="prompt" id="prompt-input" rows="4"
                           class="w-full rounded-lg bg-gray-800 border-gray-700 text-gray-100 px-3 py-2 text-sm focus:ring-brand-500 focus:border-brand-500"
-                          placeholder="Describe the image you want to create..."></textarea>
+                          placeholder="Describe the image you want to create, or pick a preset above..."></textarea>
             </div>
 
             <div>
@@ -75,6 +93,7 @@
 {% block extra_scripts %}
 <script>
 const provider_models = {{ provider_models_json|safe }};
+const prompt_presets = {{ prompt_presets_json|safe }};
 const provider_select = document.getElementById('provider-select');
 const model_select = document.getElementById('model-select');
 const model_loading_hint = document.getElementById('model-loading-hint');
@@ -105,6 +124,67 @@ function update_model_options() {
 
 provider_select.addEventListener('change', update_model_options);
 update_model_options();
+
+/* ---------- Prompt preset selectors (3-level: mode → category → prompt) ---------- */
+const mode_select = document.getElementById('prompt-mode-select');
+const category_select = document.getElementById('prompt-category-select');
+const preset_select = document.getElementById('prompt-preset-select');
+const prompt_input = document.getElementById('prompt-input');
+
+Object.entries(prompt_presets).forEach(function([mode_key, mode_data]) {
+    const option = document.createElement('option');
+    option.value = mode_key;
+    option.textContent = mode_data.label;
+    mode_select.appendChild(option);
+});
+
+function reset_category_select() {
+    category_select.innerHTML = '<option value="">-- Category --</option>';
+    category_select.disabled = true;
+    reset_preset_select();
+}
+
+function reset_preset_select() {
+    preset_select.innerHTML = '<option value="">-- Prompt --</option>';
+    preset_select.disabled = true;
+}
+
+mode_select.addEventListener('change', function() {
+    reset_category_select();
+    const selected_mode = prompt_presets[this.value];
+    if (!selected_mode) return;
+
+    Object.entries(selected_mode.categories).forEach(function([category_key, category_data]) {
+        const option = document.createElement('option');
+        option.value = category_key;
+        option.textContent = category_data.label;
+        category_select.appendChild(option);
+    });
+    category_select.disabled = false;
+});
+
+category_select.addEventListener('change', function() {
+    reset_preset_select();
+    const selected_mode = prompt_presets[mode_select.value];
+    if (!selected_mode) return;
+
+    const selected_category = selected_mode.categories[this.value];
+    if (!selected_category) return;
+
+    selected_category.prompts.forEach(function(prompt_text) {
+        const option = document.createElement('option');
+        option.value = prompt_text;
+        option.textContent = prompt_text.length > 80 ? prompt_text.substring(0, 80) + '...' : prompt_text;
+        preset_select.appendChild(option);
+    });
+    preset_select.disabled = false;
+});
+
+preset_select.addEventListener('change', function() {
+    if (this.value) {
+        prompt_input.value = this.value;
+    }
+});
 
 document.getElementById('image-generation-form').addEventListener('submit', async function(event) {
     event.preventDefault();
