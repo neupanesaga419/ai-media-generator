@@ -70,11 +70,15 @@ class GoogleImageGenerator(BaseImageGenerator):
 
     def generate(self, prompt: str, **kwargs) -> bytes:
         model_name = kwargs.get("model_name", "imagen-4.0-generate-001")
-        print(model_name,"Model name")
+        input_image = kwargs.get("input_image")
+
+        if input_image:
+            return self._generate_with_gemini_image_edit(prompt, input_image)
 
         if _is_gemini_model(model_name):
             return self._generate_with_gemini(prompt, model_name)
         return self._generate_with_imagen(prompt, model_name, kwargs)
+
 
     def _generate_with_gemini(self, prompt: str, model_name: str) -> bytes:
         """Generate image using Gemini's generateContent API."""
@@ -103,6 +107,7 @@ class GoogleImageGenerator(BaseImageGenerator):
                 number_of_images=1,
                 aspect_ratio=aspect_ratio,
                 negative_prompt="lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry."
+                
             ),
         )
 
@@ -111,6 +116,30 @@ class GoogleImageGenerator(BaseImageGenerator):
 
         raw_bytes = response.generated_images[0].image.image_bytes
         return _convert_raw_image_to_png(raw_bytes)
+    
+    def _generate_with_gemini_image_edit(
+        self, prompt: str, input_image
+    ) -> bytes:
+        """Edit an uploaded image using Gemini's multimodal image generation.
+
+        Sends the image + text prompt to Gemini and gets a modified image back.
+        No mask needed — Gemini interprets the edit from the prompt.
+        """
+        image_bytes = input_image.read()
+        mime_type = getattr(input_image, "content_type", "image/png")
+
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash-image",
+            contents=types.Content(role="user", parts=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                types.Part(text=prompt),
+            ]),
+            config=types.GenerateContentConfig(
+                response_modalities=["image", "text"],
+            ),
+        )
+        return self._extract_image_from_gemini_response(response)
+    
 
     def _extract_image_from_gemini_response(self, response) -> bytes:
         """Extract the first image from a Gemini generateContent response."""

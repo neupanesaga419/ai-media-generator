@@ -62,18 +62,15 @@ def gallery_page(request):
 @require_POST
 def api_generate_image(request):
     """Accept a generation request, run the provider, and return the result."""
-    try:
-        request_body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
-
-    prompt = request_body.get("prompt", "").strip()
+    prompt = request.POST.get("prompt", "").strip()
     if not prompt:
         return JsonResponse({"error": "Prompt is required."}, status=400)
 
-    provider_name = request_body.get("provider", "google_imagen")
-    model_name = request_body.get("model_name", "")
-    negative_prompt = request_body.get("negative_prompt", "")
+    provider_name = request.POST.get("provider", "google_imagen")
+    model_name = request.POST.get("model_name", "")
+    negative_prompt = request.POST.get("negative_prompt", "")
+    input_image = request.FILES.get("imputImageFile")
+    print(input_image,"Inpit iamge")
 
     image_record = GeneratedImage.objects.create(
         prompt=prompt,
@@ -89,6 +86,8 @@ def api_generate_image(request):
         generation_kwargs = {}
         if model_name:
             generation_kwargs["model_name"] = model_name
+        if input_image:
+            generation_kwargs["input_image"] = input_image
 
         generated_image_bytes = generator.generate(prompt, **generation_kwargs)
 
