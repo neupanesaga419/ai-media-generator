@@ -100,6 +100,23 @@
                     <input type="range" id="layout-border-input" min="0" max="15" value="5" class="w-full accent-brand-500">
                 </div>
 
+                <div class="pt-2 border-t border-gray-700 space-y-2">
+                    <label class="block text-xs text-gray-400">Studio Info (printed on layout)</label>
+                    <input type="text" id="studio-name-input" placeholder="Studio Name"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <input type="text" id="studio-location-input" placeholder="Studio Location"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <input type="text" id="photo-id-input" placeholder="Photo ID / Reference"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Text Position</label>
+                        <div class="flex gap-1.5">
+                            <button type="button" id="text-position-bottom-button" class="flex-1 rounded-md bg-brand-600 border border-brand-500 px-2 py-1.5 text-xs text-white transition">Bottom</button>
+                            <button type="button" id="text-position-side-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Side</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="layout-summary" class="hidden text-xs text-gray-400 py-1">
                     <span id="layout-summary-text"></span>
                 </div>
@@ -697,6 +714,29 @@ const layout_summary_text = document.getElementById('layout-summary-text');
 
 let print_layout_canvas = null;
 let paper_orientation = 'portrait';  /* 'portrait' or 'landscape' */
+let studio_text_position = 'bottom'; /* 'bottom' or 'side' */
+
+const studio_name_input = document.getElementById('studio-name-input');
+const studio_location_input = document.getElementById('studio-location-input');
+const photo_id_input = document.getElementById('photo-id-input');
+const text_position_bottom_button = document.getElementById('text-position-bottom-button');
+const text_position_side_button = document.getElementById('text-position-side-button');
+
+text_position_bottom_button.addEventListener('click', function() {
+    studio_text_position = 'bottom';
+    text_position_bottom_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_bottom_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    text_position_side_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_side_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+});
+
+text_position_side_button.addEventListener('click', function() {
+    studio_text_position = 'side';
+    text_position_side_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_side_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    text_position_bottom_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_bottom_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+});
 
 orientation_portrait_button.addEventListener('click', function() {
     paper_orientation = 'portrait';
@@ -724,6 +764,12 @@ function inches_to_pixels(inches) {
     return Math.round(inches * DPI);
 }
 
+function has_studio_text() {
+    return studio_name_input.value.trim() || studio_location_input.value.trim() || photo_id_input.value.trim();
+}
+
+const STUDIO_TEXT_STRIP_MM = 12;  /* height (or width) reserved for studio text */
+
 function compute_layout() {
     if (!working_canvas) return null;
 
@@ -738,8 +784,16 @@ function compute_layout() {
     const spacing_pixels = mm_to_pixels(spacing_mm);
     const border_pixels = mm_to_pixels(border_mm);
 
-    const printable_width = paper_width_pixels - (2 * border_pixels);
-    const printable_height = paper_height_pixels - (2 * border_pixels);
+    /* reserve space for studio text strip if any text is provided */
+    const text_strip_pixels = has_studio_text() ? mm_to_pixels(STUDIO_TEXT_STRIP_MM) : 0;
+    let printable_width = paper_width_pixels - (2 * border_pixels);
+    let printable_height = paper_height_pixels - (2 * border_pixels);
+
+    if (studio_text_position === 'bottom') {
+        printable_height -= text_strip_pixels;
+    } else {
+        printable_width -= text_strip_pixels;
+    }
 
     let photo_width_pixels, photo_height_pixels;
 
@@ -872,6 +926,72 @@ generate_layout_button.addEventListener('click', function() {
             /* photo on top */
             print_context.drawImage(working_canvas, 0, 0, working_canvas.width, working_canvas.height,
                                     destination_x, destination_y, layout.photo_width_pixels, layout.photo_height_pixels);
+        }
+    }
+
+    /* ---------- Draw studio text ---------- */
+    const studio_name = studio_name_input.value.trim();
+    const studio_location = studio_location_input.value.trim();
+    const photo_id = photo_id_input.value.trim();
+
+    if (studio_name || studio_location || photo_id) {
+        const text_strip_pixels = mm_to_pixels(STUDIO_TEXT_STRIP_MM);
+        const font_size_large = Math.round(DPI * 0.12);   /* ~3mm */
+        const font_size_small = Math.round(DPI * 0.09);   /* ~2.3mm */
+        const line_gap = Math.round(font_size_small * 0.4);
+
+        print_context.fillStyle = '#000000';
+        print_context.textBaseline = 'top';
+
+        if (studio_text_position === 'bottom') {
+            /* text strip at the bottom of the paper */
+            const text_area_y = layout.paper_height_pixels - text_strip_pixels;
+            let current_y = text_area_y + line_gap;
+            const text_x = Math.round(layout.paper_width_pixels / 2);
+            print_context.textAlign = 'center';
+
+            if (studio_name) {
+                print_context.font = `bold ${font_size_large}px system-ui, sans-serif`;
+                print_context.fillText(studio_name, text_x, current_y);
+                current_y += font_size_large + line_gap;
+            }
+            if (studio_location) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText(studio_location, text_x, current_y);
+                current_y += font_size_small + line_gap;
+            }
+            if (photo_id) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText('ID: ' + photo_id, text_x, current_y);
+            }
+        } else {
+            /* text strip on the right side, rotated 90 degrees */
+            const text_area_x = layout.paper_width_pixels - text_strip_pixels;
+            print_context.save();
+            print_context.translate(text_area_x + text_strip_pixels / 2, layout.paper_height_pixels / 2);
+            print_context.rotate(Math.PI / 2);
+            print_context.textAlign = 'center';
+
+            const total_text_lines = [studio_name, studio_location, photo_id].filter(Boolean).length;
+            const block_height = total_text_lines * (font_size_small + line_gap);
+            let current_y = -block_height / 2;
+
+            if (studio_name) {
+                print_context.font = `bold ${font_size_large}px system-ui, sans-serif`;
+                print_context.fillText(studio_name, 0, current_y);
+                current_y += font_size_large + line_gap;
+            }
+            if (studio_location) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText(studio_location, 0, current_y);
+                current_y += font_size_small + line_gap;
+            }
+            if (photo_id) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText('ID: ' + photo_id, 0, current_y);
+            }
+
+            print_context.restore();
         }
     }
 
