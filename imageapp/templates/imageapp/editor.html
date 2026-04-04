@@ -1,0 +1,1067 @@
+{% extends "imageapp/base.html" %}
+{% block page_title %}Photo Editor{% endblock %}
+
+{% block app_content %}
+<div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+
+    <!-- Sidebar Tools -->
+    <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-5 h-fit lg:sticky lg:top-4">
+        <h2 class="text-lg font-semibold">Tools</h2>
+
+        <!-- Upload -->
+        <div>
+            <label for="image-upload-input" class="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
+            <label class="flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed border-gray-600 hover:border-brand-500 bg-gray-800 px-4 py-3 text-sm text-gray-400 hover:text-gray-200 cursor-pointer transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span id="upload-label-text">Choose file...</span>
+                <input type="file" id="image-upload-input" accept="image/*" class="hidden">
+            </label>
+        </div>
+
+        <!-- Crop Ratio -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Crop Ratio</label>
+            <div id="crop-ratio-buttons" class="grid grid-cols-3 gap-1.5">
+                <button type="button" data-ratio="free" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Free</button>
+                <button type="button" data-ratio="1:1" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">1:1</button>
+                <button type="button" data-ratio="4:5" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">4:5</button>
+                <button type="button" data-ratio="3:4" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">3:4</button>
+                <button type="button" data-ratio="4:3" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">4:3</button>
+                <button type="button" data-ratio="16:9" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">16:9</button>
+                <button type="button" data-ratio="9:16" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">9:16</button>
+                <button type="button" data-ratio="2:3" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">2:3</button>
+                <button type="button" data-ratio="3:2" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">3:2</button>
+            </div>
+        </div>
+
+        <!-- Rotate / Flip -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Rotate / Flip</label>
+            <div class="flex gap-2 flex-wrap">
+                <button type="button" id="rotate-left-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Rotate 90 left">&#8634; Left</button>
+                <button type="button" id="rotate-right-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Rotate 90 right">&#8635; Right</button>
+                <button type="button" id="flip-horizontal-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Flip horizontal">&#8596; Flip H</button>
+                <button type="button" id="flip-vertical-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Flip vertical">&#8597; Flip V</button>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 pt-2 border-t border-gray-800">
+            <button type="button" id="apply-crop-button" disabled class="flex-1 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Apply Crop</button>
+            <button type="button" id="reset-button" disabled class="rounded-lg bg-gray-700 px-3 py-2 text-sm text-gray-200 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition">Reset</button>
+        </div>
+
+        <div>
+            <button type="button" id="download-button" disabled class="w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Download</button>
+        </div>
+
+        <!-- Print Layout -->
+        <div class="pt-2 border-t border-gray-800">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Print Layout</label>
+
+            <div class="space-y-2">
+                <div>
+                    <label for="paper-size-select" class="block text-xs text-gray-400 mb-1">Paper Size</label>
+                    <select id="paper-size-select" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        <option value="4x6">4 x 6 inch</option>
+                        <option value="5x7">5 x 7 inch</option>
+                        <option value="a4">A4 (210 x 297 mm)</option>
+                        <option value="letter">US Letter (8.5 x 11 inch)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Orientation</label>
+                    <div class="flex gap-1.5">
+                        <button type="button" id="orientation-portrait-button" class="flex-1 rounded-md bg-brand-600 border border-brand-500 px-2 py-1.5 text-xs text-white transition">Portrait</button>
+                        <button type="button" id="orientation-landscape-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Landscape</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="photo-size-select" class="block text-xs text-gray-400 mb-1">Photo Size</label>
+                    <select id="photo-size-select" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        <option value="passport_35x45">Passport (35 x 45 mm)</option>
+                        <option value="25x30">Stamp (25 x 30 mm)</option>
+                        <option value="2x2inch">2 x 2 inch (Visa/ID)</option>
+                        <option value="1x1inch">1 x 1 inch</option>
+                        <option value="pp_33x48">PP Size (33 x 48 mm)</option>
+                        <option value="auto">Auto-fit (maximize count)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="layout-spacing-input" class="block text-xs text-gray-400 mb-1">Photo Spacing: <span id="spacing-value-label">2</span> mm</label>
+                    <input type="range" id="layout-spacing-input" min="0" max="10" value="2" class="w-full accent-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Paper Margins (mm)</label>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Top</span>
+                            <input type="number" id="margin-top-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Btm</span>
+                            <input type="number" id="margin-bottom-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Left</span>
+                            <input type="number" id="margin-left-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Right</span>
+                            <input type="number" id="margin-right-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-gray-700 space-y-2">
+                    <label class="block text-xs text-gray-400">Studio Info (printed on layout)</label>
+                    <input type="text" id="studio-name-input" placeholder="Studio Name"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <input type="text" id="studio-location-input" placeholder="Studio Location"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <input type="text" id="photo-id-input" placeholder="Photo ID / Reference"
+                           class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Text Position</label>
+                        <div class="flex gap-1.5">
+                            <button type="button" id="text-position-bottom-button" class="flex-1 rounded-md bg-brand-600 border border-brand-500 px-2 py-1.5 text-xs text-white transition">Bottom</button>
+                            <button type="button" id="text-position-side-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Side</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="text-padding-input" class="block text-xs text-gray-400 mb-1">Text Padding: <span id="text-padding-value-label">3</span> mm</label>
+                        <input type="range" id="text-padding-input" min="0" max="15" value="3" class="w-full accent-brand-500">
+                    </div>
+                </div>
+
+                <div id="layout-summary" class="hidden text-xs text-gray-400 py-1">
+                    <span id="layout-summary-text"></span>
+                </div>
+
+                <button type="button" id="generate-layout-button" disabled class="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Generate Print Layout</button>
+                <button type="button" id="download-layout-button" disabled class="hidden w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Download Print Layout</button>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div id="image-info" class="hidden text-xs text-gray-500 space-y-0.5">
+            <p>Original: <span id="info-original-size"></span></p>
+            <p>Current: <span id="info-current-size"></span></p>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="bg-gray-900 rounded-xl p-5 border border-gray-800">
+        <div id="canvas-wrapper" class="relative flex items-center justify-center min-h-[500px] rounded-lg bg-gray-800 overflow-hidden select-none">
+            <p id="canvas-placeholder" class="text-gray-500 text-sm">Upload an image to start editing</p>
+            <canvas id="image-canvas" class="hidden"></canvas>
+            <canvas id="overlay-canvas" class="hidden absolute top-0 left-0" style="z-index:10;"></canvas>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* ========================================================================
+   Photo Editor — crop, rotate, flip
+   ======================================================================== */
+
+/* ---------- DOM refs ---------- */
+const image_upload_input = document.getElementById('image-upload-input');
+const upload_label_text = document.getElementById('upload-label-text');
+const canvas_placeholder = document.getElementById('canvas-placeholder');
+const image_canvas = document.getElementById('image-canvas');
+const image_context = image_canvas.getContext('2d');
+const overlay_canvas = document.getElementById('overlay-canvas');
+const overlay_context = overlay_canvas.getContext('2d');
+const canvas_wrapper = document.getElementById('canvas-wrapper');
+const apply_crop_button = document.getElementById('apply-crop-button');
+const reset_button = document.getElementById('reset-button');
+const download_button = document.getElementById('download-button');
+const info_original_size = document.getElementById('info-original-size');
+const info_current_size = document.getElementById('info-current-size');
+const image_info = document.getElementById('image-info');
+
+/* ---------- State ---------- */
+let source_image = null;                 /* original Image object (never mutated) */
+let working_canvas = null;               /* off-screen canvas holding current pixel state */
+let working_context = null;
+
+const CROP_RATIOS = {
+    'free': null, '1:1': 1, '4:5': 4/5, '3:4': 3/4,
+    '4:3': 4/3, '16:9': 16/9, '9:16': 9/16, '2:3': 2/3, '3:2': 3/2,
+};
+let active_ratio_key = null;             /* null = no crop active */
+let active_ratio_value = null;
+
+let crop_rect = { x: 0, y: 0, width: 0, height: 0 };
+let is_dragging = false;
+let is_resizing = false;
+let active_handle = '';
+let drag_start = { x: 0, y: 0 };
+const HANDLE_SIZE = 10;
+
+/* display scale: how the working image maps to on-screen canvas */
+let display_scale = 1;
+
+/* ---------- Helpers ---------- */
+
+function create_working_canvas_from(source, width, height) {
+    working_canvas = document.createElement('canvas');
+    working_canvas.width = width;
+    working_canvas.height = height;
+    working_context = working_canvas.getContext('2d');
+    working_context.drawImage(source, 0, 0, width, height);
+}
+
+function fit_canvas_to_wrapper() {
+    if (!working_canvas) return;
+
+    const wrapper_rect = canvas_wrapper.getBoundingClientRect();
+    const max_width = wrapper_rect.width - 20;
+    const max_height = Math.max(400, window.innerHeight - 200);
+
+    display_scale = Math.min(1, max_width / working_canvas.width, max_height / working_canvas.height);
+
+    const display_width = Math.round(working_canvas.width * display_scale);
+    const display_height = Math.round(working_canvas.height * display_scale);
+
+    image_canvas.width = display_width;
+    image_canvas.height = display_height;
+    image_context.drawImage(working_canvas, 0, 0, display_width, display_height);
+
+    overlay_canvas.width = display_width;
+    overlay_canvas.height = display_height;
+    overlay_canvas.style.width = display_width + 'px';
+    overlay_canvas.style.height = display_height + 'px';
+
+    /* center overlay on top of image canvas */
+    overlay_canvas.style.left = image_canvas.offsetLeft + 'px';
+    overlay_canvas.style.top = image_canvas.offsetTop + 'px';
+
+    update_info();
+}
+
+function render_image() {
+    if (!working_canvas) return;
+    const display_width = image_canvas.width;
+    const display_height = image_canvas.height;
+    image_context.clearRect(0, 0, display_width, display_height);
+    image_context.drawImage(working_canvas, 0, 0, display_width, display_height);
+}
+
+function update_info() {
+    if (!source_image || !working_canvas) return;
+    info_original_size.textContent = `${source_image.naturalWidth} x ${source_image.naturalHeight}`;
+    info_current_size.textContent = `${working_canvas.width} x ${working_canvas.height}`;
+    image_info.classList.remove('hidden');
+}
+
+function enable_buttons() {
+    reset_button.disabled = false;
+    download_button.disabled = false;
+}
+
+/* ---------- Image loading ---------- */
+
+function load_image(source) {
+    source_image = source;
+    create_working_canvas_from(source_image, source_image.naturalWidth, source_image.naturalHeight);
+
+    canvas_placeholder.classList.add('hidden');
+    image_canvas.classList.remove('hidden');
+    overlay_canvas.classList.remove('hidden');
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    enable_buttons();
+}
+
+image_upload_input.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    upload_label_text.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const image = new Image();
+        image.onload = function() { load_image(image); };
+        image.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+/* Load from ?image= query param (linked from generate page) */
+const url_params = new URLSearchParams(window.location.search);
+const preload_image_url = url_params.get('image');
+if (preload_image_url) {
+    const image = new Image();
+    image.onload = function() { load_image(image); };
+    image.src = preload_image_url;
+}
+
+/* ---------- Crop ratio buttons ---------- */
+
+document.getElementById('crop-ratio-buttons').addEventListener('click', function(event) {
+    const button = event.target.closest('.crop-ratio-button');
+    if (!button || !working_canvas) return;
+
+    const ratio_key = button.dataset.ratio;
+
+    /* toggle off if clicking the same ratio */
+    if (active_ratio_key === ratio_key) {
+        deactivate_crop();
+        return;
+    }
+
+    active_ratio_key = ratio_key;
+    active_ratio_value = CROP_RATIOS[ratio_key];
+
+    /* highlight active button */
+    document.querySelectorAll('.crop-ratio-button').forEach(function(button) {
+        button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    });
+    button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+
+    compute_initial_crop();
+    draw_overlay();
+    apply_crop_button.disabled = false;
+});
+
+function deactivate_crop() {
+    active_ratio_key = null;
+    active_ratio_value = null;
+    apply_crop_button.disabled = true;
+    is_dragging = false;
+    is_resizing = false;
+
+    document.querySelectorAll('.crop-ratio-button').forEach(function(button) {
+        button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    });
+    overlay_context.clearRect(0, 0, overlay_canvas.width, overlay_canvas.height);
+}
+
+function compute_initial_crop() {
+    const canvas_width = overlay_canvas.width;
+    const canvas_height = overlay_canvas.height;
+    let crop_width, crop_height;
+
+    if (active_ratio_value === null) {
+        crop_width = canvas_width * 0.75;
+        crop_height = canvas_height * 0.75;
+    } else {
+        crop_height = Math.min(canvas_height * 0.75, (canvas_width * 0.75) / active_ratio_value);
+        crop_width = crop_height * active_ratio_value;
+        if (crop_width > canvas_width * 0.95) {
+            crop_width = canvas_width * 0.75;
+            crop_height = crop_width / active_ratio_value;
+        }
+    }
+
+    crop_rect = {
+        x: Math.round((canvas_width - crop_width) / 2),
+        y: Math.round((canvas_height - crop_height) / 2),
+        width: Math.round(crop_width),
+        height: Math.round(crop_height),
+    };
+}
+
+/* ---------- Draw crop overlay ---------- */
+
+function draw_overlay() {
+    if (active_ratio_key === null) return;
+
+    const width = overlay_canvas.width;
+    const height = overlay_canvas.height;
+    overlay_context.clearRect(0, 0, width, height);
+
+    /* dim outside */
+    overlay_context.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    overlay_context.fillRect(0, 0, width, height);
+    overlay_context.clearRect(crop_rect.x, crop_rect.y, crop_rect.width, crop_rect.height);
+
+    /* border */
+    overlay_context.strokeStyle = '#facc15';
+    overlay_context.lineWidth = 2;
+    overlay_context.strokeRect(crop_rect.x, crop_rect.y, crop_rect.width, crop_rect.height);
+
+    /* thirds grid */
+    overlay_context.strokeStyle = 'rgba(250, 204, 21, 0.25)';
+    overlay_context.lineWidth = 1;
+    for (let i = 1; i <= 2; i++) {
+        const vertical_x = crop_rect.x + (crop_rect.width / 3) * i;
+        overlay_context.beginPath();
+        overlay_context.moveTo(vertical_x, crop_rect.y);
+        overlay_context.lineTo(vertical_x, crop_rect.y + crop_rect.height);
+        overlay_context.stroke();
+
+        const horizontal_y = crop_rect.y + (crop_rect.height / 3) * i;
+        overlay_context.beginPath();
+        overlay_context.moveTo(crop_rect.x, horizontal_y);
+        overlay_context.lineTo(crop_rect.x + crop_rect.width, horizontal_y);
+        overlay_context.stroke();
+    }
+
+    /* corner handles */
+    overlay_context.fillStyle = '#facc15';
+    const corners = get_corners();
+    for (const position of Object.values(corners)) {
+        overlay_context.fillRect(position.x - HANDLE_SIZE / 2, position.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+    }
+
+    /* label */
+    const label = active_ratio_key === 'free' ? 'Free' : active_ratio_key;
+    const real_width = Math.round(crop_rect.width / display_scale);
+    const real_height = Math.round(crop_rect.height / display_scale);
+    overlay_context.fillStyle = 'rgba(0,0,0,0.6)';
+    overlay_context.fillRect(crop_rect.x, crop_rect.y - 22, 140, 20);
+    overlay_context.fillStyle = '#facc15';
+    overlay_context.font = '12px system-ui, sans-serif';
+    overlay_context.fillText(`${label}  ${real_width} x ${real_height}`, crop_rect.x + 4, crop_rect.y - 7);
+}
+
+/* ---------- Crop interaction (drag + resize) ---------- */
+
+function get_corners() {
+    return {
+        'top-left':     { x: crop_rect.x, y: crop_rect.y },
+        'top-right':    { x: crop_rect.x + crop_rect.width, y: crop_rect.y },
+        'bottom-left':  { x: crop_rect.x, y: crop_rect.y + crop_rect.height },
+        'bottom-right': { x: crop_rect.x + crop_rect.width, y: crop_rect.y + crop_rect.height },
+    };
+}
+
+function get_handle_at(pointer_x, pointer_y) {
+    const corners = get_corners();
+    for (const [name, position] of Object.entries(corners)) {
+        if (Math.abs(pointer_x - position.x) <= HANDLE_SIZE && Math.abs(pointer_y - position.y) <= HANDLE_SIZE) {
+            return name;
+        }
+    }
+    return '';
+}
+
+function is_inside_crop(pointer_x, pointer_y) {
+    return pointer_x >= crop_rect.x && pointer_x <= crop_rect.x + crop_rect.width &&
+           pointer_y >= crop_rect.y && pointer_y <= crop_rect.y + crop_rect.height;
+}
+
+function clamp_crop() {
+    crop_rect.width = Math.max(20, crop_rect.width);
+    crop_rect.height = Math.max(20, crop_rect.height);
+    crop_rect.x = Math.max(0, Math.min(crop_rect.x, overlay_canvas.width - crop_rect.width));
+    crop_rect.y = Math.max(0, Math.min(crop_rect.y, overlay_canvas.height - crop_rect.height));
+}
+
+function get_pointer(event) {
+    const rect = overlay_canvas.getBoundingClientRect();
+    const client_x = event.touches ? event.touches[0].clientX : event.clientX;
+    const client_y = event.touches ? event.touches[0].clientY : event.clientY;
+    return { x: client_x - rect.left, y: client_y - rect.top };
+}
+
+function on_pointer_down(event) {
+    if (active_ratio_key === null) return;
+    const pointer = get_pointer(event);
+
+    const handle = get_handle_at(pointer.x, pointer.y);
+    if (handle) {
+        is_resizing = true;
+        active_handle = handle;
+        drag_start = pointer;
+        event.preventDefault();
+        return;
+    }
+
+    if (is_inside_crop(pointer.x, pointer.y)) {
+        is_dragging = true;
+        drag_start = { x: pointer.x - crop_rect.x, y: pointer.y - crop_rect.y };
+        event.preventDefault();
+    }
+}
+
+function on_pointer_move(event) {
+    if (active_ratio_key === null) return;
+    const pointer = get_pointer(event);
+
+    if (is_resizing) {
+        resize_crop(pointer);
+        draw_overlay();
+        event.preventDefault();
+        return;
+    }
+
+    if (is_dragging) {
+        crop_rect.x = pointer.x - drag_start.x;
+        crop_rect.y = pointer.y - drag_start.y;
+        clamp_crop();
+        draw_overlay();
+        event.preventDefault();
+        return;
+    }
+
+    /* cursor feedback */
+    const handle = get_handle_at(pointer.x, pointer.y);
+    if (handle === 'top-left' || handle === 'bottom-right') {
+        overlay_canvas.style.cursor = 'nwse-resize';
+    } else if (handle === 'top-right' || handle === 'bottom-left') {
+        overlay_canvas.style.cursor = 'nesw-resize';
+    } else if (is_inside_crop(pointer.x, pointer.y)) {
+        overlay_canvas.style.cursor = 'move';
+    } else {
+        overlay_canvas.style.cursor = 'default';
+    }
+}
+
+function resize_crop(pointer) {
+    const min_size = 20;
+    let new_x = crop_rect.x, new_y = crop_rect.y;
+    let new_width = crop_rect.width, new_height = crop_rect.height;
+
+    const right_edge = crop_rect.x + crop_rect.width;
+    const bottom_edge = crop_rect.y + crop_rect.height;
+
+    if (active_handle.includes('right')) {
+        new_width = Math.max(min_size, pointer.x - crop_rect.x);
+    }
+    if (active_handle.includes('left')) {
+        new_width = Math.max(min_size, right_edge - pointer.x);
+        new_x = Math.min(pointer.x, right_edge - min_size);
+    }
+    if (active_handle.includes('bottom')) {
+        new_height = Math.max(min_size, pointer.y - crop_rect.y);
+    }
+    if (active_handle.includes('top')) {
+        new_height = Math.max(min_size, bottom_edge - pointer.y);
+        new_y = Math.min(pointer.y, bottom_edge - min_size);
+    }
+
+    /* enforce ratio */
+    if (active_ratio_value !== null) {
+        if (active_handle.includes('left') || active_handle.includes('right')) {
+            new_height = new_width / active_ratio_value;
+            if (active_handle.includes('top')) new_y = bottom_edge - new_height;
+        } else {
+            new_width = new_height * active_ratio_value;
+            if (active_handle.includes('left')) new_x = right_edge - new_width;
+        }
+    }
+
+    /* keep in bounds */
+    if (new_x < 0) { new_width += new_x; new_x = 0; }
+    if (new_y < 0) { new_height += new_y; new_y = 0; }
+    if (new_x + new_width > overlay_canvas.width) new_width = overlay_canvas.width - new_x;
+    if (new_y + new_height > overlay_canvas.height) new_height = overlay_canvas.height - new_y;
+
+    if (active_ratio_value !== null) {
+        const constrained = Math.min(new_width, new_height * active_ratio_value);
+        new_width = constrained;
+        new_height = constrained / active_ratio_value;
+    }
+
+    if (new_width >= min_size && new_height >= min_size) {
+        crop_rect = { x: new_x, y: new_y, width: new_width, height: new_height };
+    }
+}
+
+function on_pointer_up() {
+    is_dragging = false;
+    is_resizing = false;
+}
+
+overlay_canvas.addEventListener('mousedown', on_pointer_down);
+overlay_canvas.addEventListener('mousemove', on_pointer_move);
+overlay_canvas.addEventListener('mouseup', on_pointer_up);
+overlay_canvas.addEventListener('mouseleave', on_pointer_up);
+overlay_canvas.addEventListener('touchstart', on_pointer_down, { passive: false });
+overlay_canvas.addEventListener('touchmove', on_pointer_move, { passive: false });
+overlay_canvas.addEventListener('touchend', on_pointer_up);
+
+/* ---------- Apply crop ---------- */
+
+apply_crop_button.addEventListener('click', function() {
+    if (active_ratio_key === null || !working_canvas) return;
+
+    /* map display crop_rect back to working canvas pixels */
+    const source_x = Math.round(crop_rect.x / display_scale);
+    const source_y = Math.round(crop_rect.y / display_scale);
+    const source_width = Math.round(crop_rect.width / display_scale);
+    const source_height = Math.round(crop_rect.height / display_scale);
+
+    const cropped_canvas = document.createElement('canvas');
+    cropped_canvas.width = source_width;
+    cropped_canvas.height = source_height;
+    const cropped_context = cropped_canvas.getContext('2d');
+    cropped_context.drawImage(working_canvas, source_x, source_y, source_width, source_height, 0, 0, source_width, source_height);
+
+    /* replace working canvas */
+    working_canvas = cropped_canvas;
+    working_context = cropped_context;
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+});
+
+/* ---------- Rotate / Flip ---------- */
+
+function apply_transform(transform_function) {
+    if (!working_canvas) return;
+
+    const result_canvas = document.createElement('canvas');
+    const result_context = result_canvas.getContext('2d');
+    transform_function(result_canvas, result_context, working_canvas);
+
+    working_canvas = result_canvas;
+    working_context = result_context;
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+}
+
+document.getElementById('rotate-left-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.height;
+        destination.height = source.width;
+        destination_context.translate(0, destination.height);
+        destination_context.rotate(-Math.PI / 2);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('rotate-right-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.height;
+        destination.height = source.width;
+        destination_context.translate(destination.width, 0);
+        destination_context.rotate(Math.PI / 2);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('flip-horizontal-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.width;
+        destination.height = source.height;
+        destination_context.translate(destination.width, 0);
+        destination_context.scale(-1, 1);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('flip-vertical-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.width;
+        destination.height = source.height;
+        destination_context.translate(0, destination.height);
+        destination_context.scale(1, -1);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+/* ---------- Reset ---------- */
+
+reset_button.addEventListener('click', function() {
+    if (!source_image) return;
+    create_working_canvas_from(source_image, source_image.naturalWidth, source_image.naturalHeight);
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+});
+
+/* ---------- Download ---------- */
+
+download_button.addEventListener('click', function() {
+    if (!working_canvas) return;
+    const link = document.createElement('a');
+    link.download = 'edited-image.png';
+    link.href = working_canvas.toDataURL('image/png');
+    link.click();
+});
+
+/* ---------- Resize handler ---------- */
+
+window.addEventListener('resize', function() {
+    if (!working_canvas) return;
+    fit_canvas_to_wrapper();
+    if (active_ratio_key !== null) {
+        compute_initial_crop();
+        draw_overlay();
+    }
+});
+
+/* ========================================================================
+   Print Layout — tile cropped photo onto paper at 300 DPI
+   ======================================================================== */
+
+const DPI = 300;
+const MM_PER_INCH = 25.4;
+
+const PAPER_SIZES = {
+    '4x6':   { width_inches: 4,    height_inches: 6,     label: '4x6 inch' },
+    '5x7':   { width_inches: 5,    height_inches: 7,     label: '5x7 inch' },
+    'a4':    { width_inches: 8.27, height_inches: 11.69, label: 'A4' },
+    'letter':{ width_inches: 8.5,  height_inches: 11,    label: 'US Letter' },
+};
+
+const PHOTO_SIZES = {
+    'passport_35x45': { width_mm: 35, height_mm: 45,   label: '35x45mm Passport' },
+    '25x30':          { width_mm: 25, height_mm: 30,   label: '25x30mm Stamp' },
+    '2x2inch':        { width_mm: 50.8, height_mm: 50.8, label: '2x2 inch' },
+    '1x1inch':        { width_mm: 25.4, height_mm: 25.4, label: '1x1 inch' },
+    'pp_33x48':       { width_mm: 33, height_mm: 48,   label: '33x48mm PP' },
+    'auto':           { width_mm: 0, height_mm: 0,     label: 'Auto-fit' },
+};
+
+const paper_size_select = document.getElementById('paper-size-select');
+const photo_size_select = document.getElementById('photo-size-select');
+const orientation_portrait_button = document.getElementById('orientation-portrait-button');
+const orientation_landscape_button = document.getElementById('orientation-landscape-button');
+const layout_spacing_input = document.getElementById('layout-spacing-input');
+const spacing_value_label = document.getElementById('spacing-value-label');
+const margin_top_input = document.getElementById('margin-top-input');
+const margin_bottom_input = document.getElementById('margin-bottom-input');
+const margin_left_input = document.getElementById('margin-left-input');
+const margin_right_input = document.getElementById('margin-right-input');
+const text_padding_input = document.getElementById('text-padding-input');
+const text_padding_value_label = document.getElementById('text-padding-value-label');
+const generate_layout_button = document.getElementById('generate-layout-button');
+const download_layout_button = document.getElementById('download-layout-button');
+const layout_summary = document.getElementById('layout-summary');
+const layout_summary_text = document.getElementById('layout-summary-text');
+
+let print_layout_canvas = null;
+let paper_orientation = 'portrait';  /* 'portrait' or 'landscape' */
+let studio_text_position = 'bottom'; /* 'bottom' or 'side' */
+
+const studio_name_input = document.getElementById('studio-name-input');
+const studio_location_input = document.getElementById('studio-location-input');
+const photo_id_input = document.getElementById('photo-id-input');
+const text_position_bottom_button = document.getElementById('text-position-bottom-button');
+const text_position_side_button = document.getElementById('text-position-side-button');
+
+text_position_bottom_button.addEventListener('click', function() {
+    studio_text_position = 'bottom';
+    text_position_bottom_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_bottom_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    text_position_side_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_side_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+});
+
+text_position_side_button.addEventListener('click', function() {
+    studio_text_position = 'side';
+    text_position_side_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_side_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    text_position_bottom_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    text_position_bottom_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+});
+
+orientation_portrait_button.addEventListener('click', function() {
+    paper_orientation = 'portrait';
+    orientation_portrait_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_portrait_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    orientation_landscape_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_landscape_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    update_layout_summary();
+});
+
+orientation_landscape_button.addEventListener('click', function() {
+    paper_orientation = 'landscape';
+    orientation_landscape_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_landscape_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    orientation_portrait_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_portrait_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    update_layout_summary();
+});
+
+function mm_to_pixels(millimeters) {
+    return Math.round((millimeters / MM_PER_INCH) * DPI);
+}
+
+function inches_to_pixels(inches) {
+    return Math.round(inches * DPI);
+}
+
+function has_studio_text() {
+    return studio_name_input.value.trim() || studio_location_input.value.trim() || photo_id_input.value.trim();
+}
+
+const STUDIO_TEXT_STRIP_MM = 12;  /* height (or width) reserved for studio text */
+
+function compute_layout() {
+    if (!working_canvas) return null;
+
+    const paper = PAPER_SIZES[paper_size_select.value];
+    const photo_preset = PHOTO_SIZES[photo_size_select.value];
+    const spacing_mm = parseInt(layout_spacing_input.value);
+
+    const margin_top_pixels = mm_to_pixels(parseInt(margin_top_input.value) || 0);
+    const margin_bottom_pixels = mm_to_pixels(parseInt(margin_bottom_input.value) || 0);
+    const margin_left_pixels = mm_to_pixels(parseInt(margin_left_input.value) || 0);
+    const margin_right_pixels = mm_to_pixels(parseInt(margin_right_input.value) || 0);
+
+    const is_landscape = paper_orientation === 'landscape';
+    const paper_width_pixels = inches_to_pixels(is_landscape ? paper.height_inches : paper.width_inches);
+    const paper_height_pixels = inches_to_pixels(is_landscape ? paper.width_inches : paper.height_inches);
+    const spacing_pixels = mm_to_pixels(spacing_mm);
+
+    /* reserve space for studio text strip if any text is provided */
+    const text_strip_pixels = has_studio_text() ? mm_to_pixels(STUDIO_TEXT_STRIP_MM) : 0;
+    let printable_width = paper_width_pixels - margin_left_pixels - margin_right_pixels;
+    let printable_height = paper_height_pixels - margin_top_pixels - margin_bottom_pixels;
+
+    if (studio_text_position === 'bottom') {
+        printable_height -= text_strip_pixels;
+    } else {
+        printable_width -= text_strip_pixels;
+    }
+
+    let photo_width_pixels, photo_height_pixels;
+
+    if (photo_size_select.value === 'auto') {
+        /* use image aspect ratio, scale to fit as many as possible */
+        const image_aspect = working_canvas.width / working_canvas.height;
+
+        let best_count = 0;
+        let best_width = 0;
+        let best_height = 0;
+
+        /* try different sizes from small to large to find the one that fits the most copies */
+        for (let test_height_mm = 20; test_height_mm <= 150; test_height_mm += 1) {
+            const test_height = mm_to_pixels(test_height_mm);
+            const test_width = Math.round(test_height * image_aspect);
+
+            const columns = Math.floor((printable_width + spacing_pixels) / (test_width + spacing_pixels));
+            const rows = Math.floor((printable_height + spacing_pixels) / (test_height + spacing_pixels));
+            const count = columns * rows;
+
+            if (count >= 1 && count >= best_count) {
+                /* prefer larger photo when same count */
+                if (count > best_count || test_height > best_height) {
+                    best_count = count;
+                    best_width = test_width;
+                    best_height = test_height;
+                }
+            }
+        }
+
+        if (best_count === 0) return null;
+        photo_width_pixels = best_width;
+        photo_height_pixels = best_height;
+    } else {
+        photo_width_pixels = mm_to_pixels(photo_preset.width_mm);
+        photo_height_pixels = mm_to_pixels(photo_preset.height_mm);
+    }
+
+    const columns = Math.floor((printable_width + spacing_pixels) / (photo_width_pixels + spacing_pixels));
+    const rows = Math.floor((printable_height + spacing_pixels) / (photo_height_pixels + spacing_pixels));
+    const total_photos = columns * rows;
+
+    if (total_photos < 1) return null;
+
+    /* center the grid on the paper */
+    const grid_width = columns * photo_width_pixels + (columns - 1) * spacing_pixels;
+    const grid_height = rows * photo_height_pixels + (rows - 1) * spacing_pixels;
+    const offset_x = margin_left_pixels;
+    const offset_y = margin_top_pixels;
+
+    return {
+        paper_width_pixels,
+        paper_height_pixels,
+        photo_width_pixels,
+        photo_height_pixels,
+        spacing_pixels,
+        columns,
+        rows,
+        total_photos,
+        offset_x,
+        offset_y,
+        grid_width,
+        grid_height,
+        margin_top_pixels,
+        margin_bottom_pixels,
+        margin_left_pixels,
+        margin_right_pixels,
+        text_strip_pixels,
+        paper_label: paper.label,
+    };
+}
+
+function update_layout_summary() {
+    const layout = compute_layout();
+    if (!layout) {
+        layout_summary.classList.add('hidden');
+        return;
+    }
+
+    const photo_width_mm = Math.round(layout.photo_width_pixels / DPI * MM_PER_INCH);
+    const photo_height_mm = Math.round(layout.photo_height_pixels / DPI * MM_PER_INCH);
+    layout_summary_text.textContent = `${layout.columns} x ${layout.rows} = ${layout.total_photos} photos (${photo_width_mm}x${photo_height_mm}mm each) on ${layout.paper_label}`;
+    layout_summary.classList.remove('hidden');
+}
+
+/* update summary when any option changes */
+layout_spacing_input.addEventListener('input', function() {
+    spacing_value_label.textContent = this.value;
+    update_layout_summary();
+});
+margin_top_input.addEventListener('input', update_layout_summary);
+margin_bottom_input.addEventListener('input', update_layout_summary);
+margin_left_input.addEventListener('input', update_layout_summary);
+margin_right_input.addEventListener('input', update_layout_summary);
+text_padding_input.addEventListener('input', function() {
+    text_padding_value_label.textContent = this.value;
+    update_layout_summary();
+});
+paper_size_select.addEventListener('change', update_layout_summary);
+photo_size_select.addEventListener('change', update_layout_summary);
+
+/* enable layout button when image is loaded (hook into existing enable_buttons) */
+const original_enable_buttons = enable_buttons;
+enable_buttons = function() {
+    original_enable_buttons();
+    generate_layout_button.disabled = false;
+    update_layout_summary();
+};
+
+/* ---------- Generate print layout ---------- */
+
+generate_layout_button.addEventListener('click', function() {
+    const layout = compute_layout();
+    if (!layout || !working_canvas) return;
+
+    print_layout_canvas = document.createElement('canvas');
+    print_layout_canvas.width = layout.paper_width_pixels;
+    print_layout_canvas.height = layout.paper_height_pixels;
+    const print_context = print_layout_canvas.getContext('2d');
+
+    /* white paper background */
+    print_context.fillStyle = '#ffffff';
+    print_context.fillRect(0, 0, layout.paper_width_pixels, layout.paper_height_pixels);
+
+    /* tile the photo with thin black border around each */
+    const photo_border_pixels = Math.round(DPI * 0.02);  /* ~0.5mm thin border */
+    for (let row = 0; row < layout.rows; row++) {
+        for (let column = 0; column < layout.columns; column++) {
+            const destination_x = layout.offset_x + column * (layout.photo_width_pixels + layout.spacing_pixels);
+            const destination_y = layout.offset_y + row * (layout.photo_height_pixels + layout.spacing_pixels);
+
+            /* black border rect behind the photo */
+            print_context.fillStyle = '#000000';
+            print_context.fillRect(
+                destination_x - photo_border_pixels,
+                destination_y - photo_border_pixels,
+                layout.photo_width_pixels + photo_border_pixels * 2,
+                layout.photo_height_pixels + photo_border_pixels * 2
+            );
+
+            /* photo on top */
+            print_context.drawImage(working_canvas, 0, 0, working_canvas.width, working_canvas.height,
+                                    destination_x, destination_y, layout.photo_width_pixels, layout.photo_height_pixels);
+        }
+    }
+
+    /* ---------- Draw studio text ---------- */
+    const studio_name = studio_name_input.value.trim();
+    const studio_location = studio_location_input.value.trim();
+    const photo_id = photo_id_input.value.trim();
+
+    if (studio_name || studio_location || photo_id) {
+        const text_padding = mm_to_pixels(parseInt(text_padding_input.value) || 0);
+        const font_size_large = Math.round(DPI * 0.12);   /* ~3mm */
+        const font_size_small = Math.round(DPI * 0.09);   /* ~2.3mm */
+        const line_gap = Math.round(font_size_small * 0.4);
+
+        print_context.fillStyle = '#000000';
+        print_context.textBaseline = 'top';
+
+        if (studio_text_position === 'bottom') {
+            /* text starts right after the last row of photos + padding */
+            const photos_end_y = layout.offset_y + layout.grid_height;
+            let current_y = photos_end_y + text_padding;
+            const text_x = layout.offset_x + Math.round(layout.grid_width / 2);
+            print_context.textAlign = 'center';
+
+            if (studio_name) {
+                print_context.font = `bold ${font_size_large}px system-ui, sans-serif`;
+                print_context.fillText(studio_name, text_x, current_y);
+                current_y += font_size_large + line_gap;
+            }
+            if (studio_location) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText(studio_location, text_x, current_y);
+                current_y += font_size_small + line_gap;
+            }
+            if (photo_id) {
+                print_context.font = `bold ${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText('ID: ' + photo_id, text_x, current_y);
+            }
+        } else {
+            /* text starts right after the last column of photos, rotated 90 degrees */
+            const photos_end_x = layout.offset_x + layout.grid_width;
+            print_context.save();
+            print_context.translate(photos_end_x + text_padding + layout.text_strip_pixels / 2, layout.offset_y + layout.grid_height / 2);
+            print_context.rotate(Math.PI / 2);
+            print_context.textAlign = 'center';
+
+            const total_text_lines = [studio_name, studio_location, photo_id].filter(Boolean).length;
+            const block_height = total_text_lines * (font_size_small + line_gap);
+            let current_y = -block_height / 2;
+
+            if (studio_name) {
+                print_context.font = `bold ${font_size_large}px system-ui, sans-serif`;
+                print_context.fillText(studio_name, 0, current_y);
+                current_y += font_size_large + line_gap;
+            }
+            if (studio_location) {
+                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText(studio_location, 0, current_y);
+                current_y += font_size_small + line_gap;
+            }
+            if (photo_id) {
+                print_context.font = `bold ${font_size_small}px system-ui, sans-serif`;
+                print_context.fillText('ID: ' + photo_id, 0, current_y);
+            }
+
+            print_context.restore();
+        }
+    }
+
+    /* show the layout in the main canvas area */
+    const wrapper_rect = canvas_wrapper.getBoundingClientRect();
+    const preview_scale = Math.min(1, (wrapper_rect.width - 20) / print_layout_canvas.width, Math.max(400, window.innerHeight - 200) / print_layout_canvas.height);
+    const preview_width = Math.round(print_layout_canvas.width * preview_scale);
+    const preview_height = Math.round(print_layout_canvas.height * preview_scale);
+
+    image_canvas.width = preview_width;
+    image_canvas.height = preview_height;
+    image_context.drawImage(print_layout_canvas, 0, 0, preview_width, preview_height);
+
+    /* hide crop overlay while previewing layout */
+    overlay_canvas.classList.add('hidden');
+
+    download_layout_button.disabled = false;
+    download_layout_button.classList.remove('hidden');
+
+    /* update info to show layout dimensions */
+    info_current_size.textContent = `${print_layout_canvas.width} x ${print_layout_canvas.height} (${layout.total_photos} photos)`;
+});
+
+/* ---------- Download print layout ---------- */
+
+download_layout_button.addEventListener('click', function() {
+    if (!print_layout_canvas) return;
+    const link = document.createElement('a');
+    link.download = 'print-layout.png';
+    link.href = print_layout_canvas.toDataURL('image/png');
+    link.click();
+});
+</script>
+{% endblock %}

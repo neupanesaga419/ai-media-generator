@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Django web app for AI image generation. Supports multiple AI providers (currently Google Imagen and Grok/xAI). No user authentication — API keys are loaded from `.env`. The project is designed to add more generation features (video, more providers) incrementally.
+Django web app for AI image generation. Supports multiple AI providers (currently Google Imagen via Vertex AI and Grok/xAI). No user authentication — credentials are loaded from `.env` and Application Default Credentials. The project is designed to add more generation features (video, more providers) incrementally.
 
 ## Commands
 
@@ -58,9 +58,9 @@ ai-app-easy/
 
 Each AI provider is a class inheriting from `BaseImageGenerator` (ABC) in `imageapp/ai/base.py`. Every provider must implement:
 - `generate(prompt, **kwargs) -> bytes` — returns raw image bytes
-- `get_available_models() -> list[str]`
+- `fetch_available_models() -> list[str]` — classmethod, loads its own credentials
 
-Providers are registered in `imageapp/ai/__init__.py` via the `IMAGE_PROVIDERS` dict. Use `get_image_generator("provider_name")` factory to instantiate.
+Providers are registered in `imageapp/ai/__init__.py` via the `IMAGE_PROVIDERS` dict. Use `create_image_generator("provider_name")` factory to instantiate.
 
 **To add a new image provider:**
 1. Create `imageapp/ai/new_provider_generator.py` with a class extending `BaseImageGenerator`
@@ -88,7 +88,8 @@ Views serve both HTML pages and JSON API endpoints from the same `views.py`. API
 
 ## Configuration
 
-- **API keys** are read from `.env` by each AI provider class (via `BaseImageGenerator.get_api_key()`)
+- **Google Vertex AI** uses Application Default Credentials (ADC) — run `gcloud auth application-default login`
+- **xAI API key** is read from `.env` via `BaseImageGenerator._load_api_key()`
 - **No user login** — the app runs without authentication
 - **Tailwind CSS** via CDN in `templates/base.html` (no build step)
 - **SQLite** default database
@@ -97,13 +98,21 @@ Views serve both HTML pages and JSON API endpoints from the same `views.py`. API
 ### Required Environment Variables
 
 ```
-GOOGLE_API_KEY=your-google-api-key      # For Google Imagen
+GOOGLE_CLOUD_PROJECT=your-gcp-project   # For Vertex AI (Imagen / Gemini)
+GOOGLE_CLOUD_LOCATION=us-central1       # Vertex AI region (default: us-central1)
 XAI_API_KEY=your-xai-api-key            # For Grok image generation
 ```
 
+### Authentication Setup
+
+**Google Vertex AI:**
+1. Install [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
+2. `gcloud auth application-default login`
+3. Set `GOOGLE_CLOUD_PROJECT` in `.env`
+
 ## Current Providers
 
-| Provider       | Module                          | Models                                          |
-|----------------|---------------------------------|-------------------------------------------------|
-| Google Imagen  | `google_image_generator.py`     | imagen-3.0-generate-002, imagen-3.0-fast-generate-001 |
-| Grok (xAI)     | `grok_image_generator.py`       | grok-2-image                                    |
+| Provider              | Module                          | Auth                    | Models                                   |
+|-----------------------|---------------------------------|-------------------------|------------------------------------------|
+| Google Imagen (Vertex)| `google_image_generator.py`     | ADC + project env var   | imagen-4.0-generate-001, gemini models   |
+| Grok (xAI)            | `grok_image_generator.py`       | API key                 | grok-2-image                             |
