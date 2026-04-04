@@ -55,6 +55,51 @@
             <button type="button" id="download-button" disabled class="w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Download</button>
         </div>
 
+        <!-- Print Layout -->
+        <div class="pt-2 border-t border-gray-800">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Print Layout</label>
+
+            <div class="space-y-2">
+                <div>
+                    <label for="paper-size-select" class="block text-xs text-gray-400 mb-1">Paper Size</label>
+                    <select id="paper-size-select" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        <option value="4x6">4 x 6 inch</option>
+                        <option value="5x7">5 x 7 inch</option>
+                        <option value="a4">A4 (210 x 297 mm)</option>
+                        <option value="letter">US Letter (8.5 x 11 inch)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="photo-size-select" class="block text-xs text-gray-400 mb-1">Photo Size</label>
+                    <select id="photo-size-select" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        <option value="passport_35x45">Passport (35 x 45 mm)</option>
+                        <option value="2x2inch">2 x 2 inch (Visa/ID)</option>
+                        <option value="1x1inch">1 x 1 inch</option>
+                        <option value="pp_33x48">PP Size (33 x 48 mm)</option>
+                        <option value="auto">Auto-fit (maximize count)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="layout-spacing-input" class="block text-xs text-gray-400 mb-1">Spacing: <span id="spacing-value-label">3</span> mm</label>
+                    <input type="range" id="layout-spacing-input" min="0" max="10" value="3" class="w-full accent-brand-500">
+                </div>
+
+                <div>
+                    <label for="layout-border-input" class="block text-xs text-gray-400 mb-1">Border: <span id="border-value-label">5</span> mm</label>
+                    <input type="range" id="layout-border-input" min="0" max="15" value="5" class="w-full accent-brand-500">
+                </div>
+
+                <div id="layout-summary" class="hidden text-xs text-gray-400 py-1">
+                    <span id="layout-summary-text"></span>
+                </div>
+
+                <button type="button" id="generate-layout-button" disabled class="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Generate Print Layout</button>
+                <button type="button" id="download-layout-button" disabled class="hidden w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Download Print Layout</button>
+            </div>
+        </div>
+
         <!-- Info -->
         <div id="image-info" class="hidden text-xs text-gray-500 space-y-0.5">
             <p>Original: <span id="info-original-size"></span></p>
@@ -603,6 +648,229 @@ window.addEventListener('resize', function() {
         compute_initial_crop();
         draw_overlay();
     }
+});
+
+/* ========================================================================
+   Print Layout — tile cropped photo onto paper at 300 DPI
+   ======================================================================== */
+
+const DPI = 300;
+const MM_PER_INCH = 25.4;
+
+const PAPER_SIZES = {
+    '4x6':   { width_inches: 4,    height_inches: 6,     label: '4x6 inch' },
+    '5x7':   { width_inches: 5,    height_inches: 7,     label: '5x7 inch' },
+    'a4':    { width_inches: 8.27, height_inches: 11.69, label: 'A4' },
+    'letter':{ width_inches: 8.5,  height_inches: 11,    label: 'US Letter' },
+};
+
+const PHOTO_SIZES = {
+    'passport_35x45': { width_mm: 35, height_mm: 45,   label: '35x45mm Passport' },
+    '2x2inch':        { width_mm: 50.8, height_mm: 50.8, label: '2x2 inch' },
+    '1x1inch':        { width_mm: 25.4, height_mm: 25.4, label: '1x1 inch' },
+    'pp_33x48':       { width_mm: 33, height_mm: 48,   label: '33x48mm PP' },
+    'auto':           { width_mm: 0, height_mm: 0,     label: 'Auto-fit' },
+};
+
+const paper_size_select = document.getElementById('paper-size-select');
+const photo_size_select = document.getElementById('photo-size-select');
+const layout_spacing_input = document.getElementById('layout-spacing-input');
+const layout_border_input = document.getElementById('layout-border-input');
+const spacing_value_label = document.getElementById('spacing-value-label');
+const border_value_label = document.getElementById('border-value-label');
+const generate_layout_button = document.getElementById('generate-layout-button');
+const download_layout_button = document.getElementById('download-layout-button');
+const layout_summary = document.getElementById('layout-summary');
+const layout_summary_text = document.getElementById('layout-summary-text');
+
+let print_layout_canvas = null;
+
+function mm_to_pixels(millimeters) {
+    return Math.round((millimeters / MM_PER_INCH) * DPI);
+}
+
+function inches_to_pixels(inches) {
+    return Math.round(inches * DPI);
+}
+
+function compute_layout() {
+    if (!working_canvas) return null;
+
+    const paper = PAPER_SIZES[paper_size_select.value];
+    const photo_preset = PHOTO_SIZES[photo_size_select.value];
+    const spacing_mm = parseInt(layout_spacing_input.value);
+    const border_mm = parseInt(layout_border_input.value);
+
+    const paper_width_pixels = inches_to_pixels(paper.width_inches);
+    const paper_height_pixels = inches_to_pixels(paper.height_inches);
+    const spacing_pixels = mm_to_pixels(spacing_mm);
+    const border_pixels = mm_to_pixels(border_mm);
+
+    const printable_width = paper_width_pixels - (2 * border_pixels);
+    const printable_height = paper_height_pixels - (2 * border_pixels);
+
+    let photo_width_pixels, photo_height_pixels;
+
+    if (photo_size_select.value === 'auto') {
+        /* use image aspect ratio, scale to fit as many as possible */
+        const image_aspect = working_canvas.width / working_canvas.height;
+
+        let best_count = 0;
+        let best_width = 0;
+        let best_height = 0;
+
+        /* try different sizes from small to large to find the one that fits the most copies */
+        for (let test_height_mm = 20; test_height_mm <= 150; test_height_mm += 1) {
+            const test_height = mm_to_pixels(test_height_mm);
+            const test_width = Math.round(test_height * image_aspect);
+
+            const columns = Math.floor((printable_width + spacing_pixels) / (test_width + spacing_pixels));
+            const rows = Math.floor((printable_height + spacing_pixels) / (test_height + spacing_pixels));
+            const count = columns * rows;
+
+            if (count >= 1 && count >= best_count) {
+                /* prefer larger photo when same count */
+                if (count > best_count || test_height > best_height) {
+                    best_count = count;
+                    best_width = test_width;
+                    best_height = test_height;
+                }
+            }
+        }
+
+        if (best_count === 0) return null;
+        photo_width_pixels = best_width;
+        photo_height_pixels = best_height;
+    } else {
+        photo_width_pixels = mm_to_pixels(photo_preset.width_mm);
+        photo_height_pixels = mm_to_pixels(photo_preset.height_mm);
+    }
+
+    const columns = Math.floor((printable_width + spacing_pixels) / (photo_width_pixels + spacing_pixels));
+    const rows = Math.floor((printable_height + spacing_pixels) / (photo_height_pixels + spacing_pixels));
+    const total_photos = columns * rows;
+
+    if (total_photos < 1) return null;
+
+    /* center the grid on the paper */
+    const grid_width = columns * photo_width_pixels + (columns - 1) * spacing_pixels;
+    const grid_height = rows * photo_height_pixels + (rows - 1) * spacing_pixels;
+    const offset_x = border_pixels + Math.round((printable_width - grid_width) / 2);
+    const offset_y = border_pixels + Math.round((printable_height - grid_height) / 2);
+
+    return {
+        paper_width_pixels,
+        paper_height_pixels,
+        photo_width_pixels,
+        photo_height_pixels,
+        spacing_pixels,
+        columns,
+        rows,
+        total_photos,
+        offset_x,
+        offset_y,
+        paper_label: paper.label,
+    };
+}
+
+function update_layout_summary() {
+    const layout = compute_layout();
+    if (!layout) {
+        layout_summary.classList.add('hidden');
+        return;
+    }
+
+    const photo_width_mm = Math.round(layout.photo_width_pixels / DPI * MM_PER_INCH);
+    const photo_height_mm = Math.round(layout.photo_height_pixels / DPI * MM_PER_INCH);
+    layout_summary_text.textContent = `${layout.columns} x ${layout.rows} = ${layout.total_photos} photos (${photo_width_mm}x${photo_height_mm}mm each) on ${layout.paper_label}`;
+    layout_summary.classList.remove('hidden');
+}
+
+/* update summary when any option changes */
+layout_spacing_input.addEventListener('input', function() {
+    spacing_value_label.textContent = this.value;
+    update_layout_summary();
+});
+layout_border_input.addEventListener('input', function() {
+    border_value_label.textContent = this.value;
+    update_layout_summary();
+});
+paper_size_select.addEventListener('change', update_layout_summary);
+photo_size_select.addEventListener('change', update_layout_summary);
+
+/* enable layout button when image is loaded (hook into existing enable_buttons) */
+const original_enable_buttons = enable_buttons;
+enable_buttons = function() {
+    original_enable_buttons();
+    generate_layout_button.disabled = false;
+    update_layout_summary();
+};
+
+/* ---------- Generate print layout ---------- */
+
+generate_layout_button.addEventListener('click', function() {
+    const layout = compute_layout();
+    if (!layout || !working_canvas) return;
+
+    print_layout_canvas = document.createElement('canvas');
+    print_layout_canvas.width = layout.paper_width_pixels;
+    print_layout_canvas.height = layout.paper_height_pixels;
+    const print_context = print_layout_canvas.getContext('2d');
+
+    /* white paper background */
+    print_context.fillStyle = '#ffffff';
+    print_context.fillRect(0, 0, layout.paper_width_pixels, layout.paper_height_pixels);
+
+    /* tile the photo with thin black border around each */
+    const photo_border_pixels = Math.round(DPI * 0.02);  /* ~0.5mm thin border */
+    for (let row = 0; row < layout.rows; row++) {
+        for (let column = 0; column < layout.columns; column++) {
+            const destination_x = layout.offset_x + column * (layout.photo_width_pixels + layout.spacing_pixels);
+            const destination_y = layout.offset_y + row * (layout.photo_height_pixels + layout.spacing_pixels);
+
+            /* black border rect behind the photo */
+            print_context.fillStyle = '#000000';
+            print_context.fillRect(
+                destination_x - photo_border_pixels,
+                destination_y - photo_border_pixels,
+                layout.photo_width_pixels + photo_border_pixels * 2,
+                layout.photo_height_pixels + photo_border_pixels * 2
+            );
+
+            /* photo on top */
+            print_context.drawImage(working_canvas, 0, 0, working_canvas.width, working_canvas.height,
+                                    destination_x, destination_y, layout.photo_width_pixels, layout.photo_height_pixels);
+        }
+    }
+
+    /* show the layout in the main canvas area */
+    const wrapper_rect = canvas_wrapper.getBoundingClientRect();
+    const preview_scale = Math.min(1, (wrapper_rect.width - 20) / print_layout_canvas.width, Math.max(400, window.innerHeight - 200) / print_layout_canvas.height);
+    const preview_width = Math.round(print_layout_canvas.width * preview_scale);
+    const preview_height = Math.round(print_layout_canvas.height * preview_scale);
+
+    image_canvas.width = preview_width;
+    image_canvas.height = preview_height;
+    image_context.drawImage(print_layout_canvas, 0, 0, preview_width, preview_height);
+
+    /* hide crop overlay while previewing layout */
+    overlay_canvas.classList.add('hidden');
+
+    download_layout_button.disabled = false;
+    download_layout_button.classList.remove('hidden');
+
+    /* update info to show layout dimensions */
+    info_current_size.textContent = `${print_layout_canvas.width} x ${print_layout_canvas.height} (${layout.total_photos} photos)`;
+});
+
+/* ---------- Download print layout ---------- */
+
+download_layout_button.addEventListener('click', function() {
+    if (!print_layout_canvas) return;
+    const link = document.createElement('a');
+    link.download = 'print-layout.png';
+    link.href = print_layout_canvas.toDataURL('image/png');
+    link.click();
 });
 </script>
 {% endblock %}
