@@ -91,13 +91,30 @@
                 </div>
 
                 <div>
-                    <label for="layout-spacing-input" class="block text-xs text-gray-400 mb-1">Spacing: <span id="spacing-value-label">3</span> mm</label>
-                    <input type="range" id="layout-spacing-input" min="0" max="10" value="3" class="w-full accent-brand-500">
+                    <label for="layout-spacing-input" class="block text-xs text-gray-400 mb-1">Photo Spacing: <span id="spacing-value-label">2</span> mm</label>
+                    <input type="range" id="layout-spacing-input" min="0" max="10" value="2" class="w-full accent-brand-500">
                 </div>
 
                 <div>
-                    <label for="layout-border-input" class="block text-xs text-gray-400 mb-1">Border: <span id="border-value-label">5</span> mm</label>
-                    <input type="range" id="layout-border-input" min="0" max="15" value="5" class="w-full accent-brand-500">
+                    <label class="block text-xs text-gray-400 mb-1">Paper Margins (mm)</label>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Top</span>
+                            <input type="number" id="margin-top-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Btm</span>
+                            <input type="number" id="margin-bottom-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Left</span>
+                            <input type="number" id="margin-left-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 w-5">Right</span>
+                            <input type="number" id="margin-right-input" min="0" max="30" value="0" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-1.5 py-1 text-xs focus:ring-brand-500 focus:border-brand-500">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="pt-2 border-t border-gray-700 space-y-2">
@@ -114,6 +131,10 @@
                             <button type="button" id="text-position-bottom-button" class="flex-1 rounded-md bg-brand-600 border border-brand-500 px-2 py-1.5 text-xs text-white transition">Bottom</button>
                             <button type="button" id="text-position-side-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Side</button>
                         </div>
+                    </div>
+                    <div>
+                        <label for="text-padding-input" class="block text-xs text-gray-400 mb-1">Text Padding: <span id="text-padding-value-label">3</span> mm</label>
+                        <input type="range" id="text-padding-input" min="0" max="15" value="3" class="w-full accent-brand-500">
                     </div>
                 </div>
 
@@ -704,9 +725,13 @@ const photo_size_select = document.getElementById('photo-size-select');
 const orientation_portrait_button = document.getElementById('orientation-portrait-button');
 const orientation_landscape_button = document.getElementById('orientation-landscape-button');
 const layout_spacing_input = document.getElementById('layout-spacing-input');
-const layout_border_input = document.getElementById('layout-border-input');
 const spacing_value_label = document.getElementById('spacing-value-label');
-const border_value_label = document.getElementById('border-value-label');
+const margin_top_input = document.getElementById('margin-top-input');
+const margin_bottom_input = document.getElementById('margin-bottom-input');
+const margin_left_input = document.getElementById('margin-left-input');
+const margin_right_input = document.getElementById('margin-right-input');
+const text_padding_input = document.getElementById('text-padding-input');
+const text_padding_value_label = document.getElementById('text-padding-value-label');
 const generate_layout_button = document.getElementById('generate-layout-button');
 const download_layout_button = document.getElementById('download-layout-button');
 const layout_summary = document.getElementById('layout-summary');
@@ -776,18 +801,21 @@ function compute_layout() {
     const paper = PAPER_SIZES[paper_size_select.value];
     const photo_preset = PHOTO_SIZES[photo_size_select.value];
     const spacing_mm = parseInt(layout_spacing_input.value);
-    const border_mm = parseInt(layout_border_input.value);
+
+    const margin_top_pixels = mm_to_pixels(parseInt(margin_top_input.value) || 0);
+    const margin_bottom_pixels = mm_to_pixels(parseInt(margin_bottom_input.value) || 0);
+    const margin_left_pixels = mm_to_pixels(parseInt(margin_left_input.value) || 0);
+    const margin_right_pixels = mm_to_pixels(parseInt(margin_right_input.value) || 0);
 
     const is_landscape = paper_orientation === 'landscape';
     const paper_width_pixels = inches_to_pixels(is_landscape ? paper.height_inches : paper.width_inches);
     const paper_height_pixels = inches_to_pixels(is_landscape ? paper.width_inches : paper.height_inches);
     const spacing_pixels = mm_to_pixels(spacing_mm);
-    const border_pixels = mm_to_pixels(border_mm);
 
     /* reserve space for studio text strip if any text is provided */
     const text_strip_pixels = has_studio_text() ? mm_to_pixels(STUDIO_TEXT_STRIP_MM) : 0;
-    let printable_width = paper_width_pixels - (2 * border_pixels);
-    let printable_height = paper_height_pixels - (2 * border_pixels);
+    let printable_width = paper_width_pixels - margin_left_pixels - margin_right_pixels;
+    let printable_height = paper_height_pixels - margin_top_pixels - margin_bottom_pixels;
 
     if (studio_text_position === 'bottom') {
         printable_height -= text_strip_pixels;
@@ -841,8 +869,8 @@ function compute_layout() {
     /* center the grid on the paper */
     const grid_width = columns * photo_width_pixels + (columns - 1) * spacing_pixels;
     const grid_height = rows * photo_height_pixels + (rows - 1) * spacing_pixels;
-    const offset_x = border_pixels + Math.round((printable_width - grid_width) / 2);
-    const offset_y = border_pixels + Math.round((printable_height - grid_height) / 2);
+    const offset_x = margin_left_pixels;
+    const offset_y = margin_top_pixels;
 
     return {
         paper_width_pixels,
@@ -855,6 +883,13 @@ function compute_layout() {
         total_photos,
         offset_x,
         offset_y,
+        grid_width,
+        grid_height,
+        margin_top_pixels,
+        margin_bottom_pixels,
+        margin_left_pixels,
+        margin_right_pixels,
+        text_strip_pixels,
         paper_label: paper.label,
     };
 }
@@ -877,8 +912,12 @@ layout_spacing_input.addEventListener('input', function() {
     spacing_value_label.textContent = this.value;
     update_layout_summary();
 });
-layout_border_input.addEventListener('input', function() {
-    border_value_label.textContent = this.value;
+margin_top_input.addEventListener('input', update_layout_summary);
+margin_bottom_input.addEventListener('input', update_layout_summary);
+margin_left_input.addEventListener('input', update_layout_summary);
+margin_right_input.addEventListener('input', update_layout_summary);
+text_padding_input.addEventListener('input', function() {
+    text_padding_value_label.textContent = this.value;
     update_layout_summary();
 });
 paper_size_select.addEventListener('change', update_layout_summary);
@@ -935,7 +974,7 @@ generate_layout_button.addEventListener('click', function() {
     const photo_id = photo_id_input.value.trim();
 
     if (studio_name || studio_location || photo_id) {
-        const text_strip_pixels = mm_to_pixels(STUDIO_TEXT_STRIP_MM);
+        const text_padding = mm_to_pixels(parseInt(text_padding_input.value) || 0);
         const font_size_large = Math.round(DPI * 0.12);   /* ~3mm */
         const font_size_small = Math.round(DPI * 0.09);   /* ~2.3mm */
         const line_gap = Math.round(font_size_small * 0.4);
@@ -944,10 +983,10 @@ generate_layout_button.addEventListener('click', function() {
         print_context.textBaseline = 'top';
 
         if (studio_text_position === 'bottom') {
-            /* text strip at the bottom of the paper */
-            const text_area_y = layout.paper_height_pixels - text_strip_pixels;
-            let current_y = text_area_y + line_gap;
-            const text_x = Math.round(layout.paper_width_pixels / 2);
+            /* text starts right after the last row of photos + padding */
+            const photos_end_y = layout.offset_y + layout.grid_height;
+            let current_y = photos_end_y + text_padding;
+            const text_x = layout.offset_x + Math.round(layout.grid_width / 2);
             print_context.textAlign = 'center';
 
             if (studio_name) {
@@ -961,14 +1000,14 @@ generate_layout_button.addEventListener('click', function() {
                 current_y += font_size_small + line_gap;
             }
             if (photo_id) {
-                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.font = `bold ${font_size_small}px system-ui, sans-serif`;
                 print_context.fillText('ID: ' + photo_id, text_x, current_y);
             }
         } else {
-            /* text strip on the right side, rotated 90 degrees */
-            const text_area_x = layout.paper_width_pixels - text_strip_pixels;
+            /* text starts right after the last column of photos, rotated 90 degrees */
+            const photos_end_x = layout.offset_x + layout.grid_width;
             print_context.save();
-            print_context.translate(text_area_x + text_strip_pixels / 2, layout.paper_height_pixels / 2);
+            print_context.translate(photos_end_x + text_padding + layout.text_strip_pixels / 2, layout.offset_y + layout.grid_height / 2);
             print_context.rotate(Math.PI / 2);
             print_context.textAlign = 'center';
 
@@ -987,7 +1026,7 @@ generate_layout_button.addEventListener('click', function() {
                 current_y += font_size_small + line_gap;
             }
             if (photo_id) {
-                print_context.font = `${font_size_small}px system-ui, sans-serif`;
+                print_context.font = `bold ${font_size_small}px system-ui, sans-serif`;
                 print_context.fillText('ID: ' + photo_id, 0, current_y);
             }
 
