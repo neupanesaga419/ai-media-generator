@@ -51,6 +51,11 @@ def generate_page(request):
     })
 
 
+def editor_page(request):
+    """Render the photo editor page."""
+    return render(request, "imageapp/editor.html")
+
+
 def gallery_page(request):
     """Show all successfully generated images."""
     completed_images = GeneratedImage.objects.filter(status="completed")

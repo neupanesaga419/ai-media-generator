@@ -1,0 +1,608 @@
+{% extends "imageapp/base.html" %}
+{% block page_title %}Photo Editor{% endblock %}
+
+{% block app_content %}
+<div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+
+    <!-- Sidebar Tools -->
+    <div class="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-5 h-fit lg:sticky lg:top-4">
+        <h2 class="text-lg font-semibold">Tools</h2>
+
+        <!-- Upload -->
+        <div>
+            <label for="image-upload-input" class="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
+            <label class="flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed border-gray-600 hover:border-brand-500 bg-gray-800 px-4 py-3 text-sm text-gray-400 hover:text-gray-200 cursor-pointer transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span id="upload-label-text">Choose file...</span>
+                <input type="file" id="image-upload-input" accept="image/*" class="hidden">
+            </label>
+        </div>
+
+        <!-- Crop Ratio -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Crop Ratio</label>
+            <div id="crop-ratio-buttons" class="grid grid-cols-3 gap-1.5">
+                <button type="button" data-ratio="free" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Free</button>
+                <button type="button" data-ratio="1:1" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">1:1</button>
+                <button type="button" data-ratio="4:5" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">4:5</button>
+                <button type="button" data-ratio="3:4" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">3:4</button>
+                <button type="button" data-ratio="4:3" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">4:3</button>
+                <button type="button" data-ratio="16:9" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">16:9</button>
+                <button type="button" data-ratio="9:16" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">9:16</button>
+                <button type="button" data-ratio="2:3" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">2:3</button>
+                <button type="button" data-ratio="3:2" class="crop-ratio-button rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">3:2</button>
+            </div>
+        </div>
+
+        <!-- Rotate / Flip -->
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Rotate / Flip</label>
+            <div class="flex gap-2 flex-wrap">
+                <button type="button" id="rotate-left-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Rotate 90 left">&#8634; Left</button>
+                <button type="button" id="rotate-right-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Rotate 90 right">&#8635; Right</button>
+                <button type="button" id="flip-horizontal-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Flip horizontal">&#8596; Flip H</button>
+                <button type="button" id="flip-vertical-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition" title="Flip vertical">&#8597; Flip V</button>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 pt-2 border-t border-gray-800">
+            <button type="button" id="apply-crop-button" disabled class="flex-1 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Apply Crop</button>
+            <button type="button" id="reset-button" disabled class="rounded-lg bg-gray-700 px-3 py-2 text-sm text-gray-200 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition">Reset</button>
+        </div>
+
+        <div>
+            <button type="button" id="download-button" disabled class="w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition">Download</button>
+        </div>
+
+        <!-- Info -->
+        <div id="image-info" class="hidden text-xs text-gray-500 space-y-0.5">
+            <p>Original: <span id="info-original-size"></span></p>
+            <p>Current: <span id="info-current-size"></span></p>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="bg-gray-900 rounded-xl p-5 border border-gray-800">
+        <div id="canvas-wrapper" class="relative flex items-center justify-center min-h-[500px] rounded-lg bg-gray-800 overflow-hidden select-none">
+            <p id="canvas-placeholder" class="text-gray-500 text-sm">Upload an image to start editing</p>
+            <canvas id="image-canvas" class="hidden"></canvas>
+            <canvas id="overlay-canvas" class="hidden absolute top-0 left-0" style="z-index:10;"></canvas>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* ========================================================================
+   Photo Editor — crop, rotate, flip
+   ======================================================================== */
+
+/* ---------- DOM refs ---------- */
+const image_upload_input = document.getElementById('image-upload-input');
+const upload_label_text = document.getElementById('upload-label-text');
+const canvas_placeholder = document.getElementById('canvas-placeholder');
+const image_canvas = document.getElementById('image-canvas');
+const image_context = image_canvas.getContext('2d');
+const overlay_canvas = document.getElementById('overlay-canvas');
+const overlay_context = overlay_canvas.getContext('2d');
+const canvas_wrapper = document.getElementById('canvas-wrapper');
+const apply_crop_button = document.getElementById('apply-crop-button');
+const reset_button = document.getElementById('reset-button');
+const download_button = document.getElementById('download-button');
+const info_original_size = document.getElementById('info-original-size');
+const info_current_size = document.getElementById('info-current-size');
+const image_info = document.getElementById('image-info');
+
+/* ---------- State ---------- */
+let source_image = null;                 /* original Image object (never mutated) */
+let working_canvas = null;               /* off-screen canvas holding current pixel state */
+let working_context = null;
+
+const CROP_RATIOS = {
+    'free': null, '1:1': 1, '4:5': 4/5, '3:4': 3/4,
+    '4:3': 4/3, '16:9': 16/9, '9:16': 9/16, '2:3': 2/3, '3:2': 3/2,
+};
+let active_ratio_key = null;             /* null = no crop active */
+let active_ratio_value = null;
+
+let crop_rect = { x: 0, y: 0, width: 0, height: 0 };
+let is_dragging = false;
+let is_resizing = false;
+let active_handle = '';
+let drag_start = { x: 0, y: 0 };
+const HANDLE_SIZE = 10;
+
+/* display scale: how the working image maps to on-screen canvas */
+let display_scale = 1;
+
+/* ---------- Helpers ---------- */
+
+function create_working_canvas_from(source, width, height) {
+    working_canvas = document.createElement('canvas');
+    working_canvas.width = width;
+    working_canvas.height = height;
+    working_context = working_canvas.getContext('2d');
+    working_context.drawImage(source, 0, 0, width, height);
+}
+
+function fit_canvas_to_wrapper() {
+    if (!working_canvas) return;
+
+    const wrapper_rect = canvas_wrapper.getBoundingClientRect();
+    const max_width = wrapper_rect.width - 20;
+    const max_height = Math.max(400, window.innerHeight - 200);
+
+    display_scale = Math.min(1, max_width / working_canvas.width, max_height / working_canvas.height);
+
+    const display_width = Math.round(working_canvas.width * display_scale);
+    const display_height = Math.round(working_canvas.height * display_scale);
+
+    image_canvas.width = display_width;
+    image_canvas.height = display_height;
+    image_context.drawImage(working_canvas, 0, 0, display_width, display_height);
+
+    overlay_canvas.width = display_width;
+    overlay_canvas.height = display_height;
+    overlay_canvas.style.width = display_width + 'px';
+    overlay_canvas.style.height = display_height + 'px';
+
+    /* center overlay on top of image canvas */
+    overlay_canvas.style.left = image_canvas.offsetLeft + 'px';
+    overlay_canvas.style.top = image_canvas.offsetTop + 'px';
+
+    update_info();
+}
+
+function render_image() {
+    if (!working_canvas) return;
+    const display_width = image_canvas.width;
+    const display_height = image_canvas.height;
+    image_context.clearRect(0, 0, display_width, display_height);
+    image_context.drawImage(working_canvas, 0, 0, display_width, display_height);
+}
+
+function update_info() {
+    if (!source_image || !working_canvas) return;
+    info_original_size.textContent = `${source_image.naturalWidth} x ${source_image.naturalHeight}`;
+    info_current_size.textContent = `${working_canvas.width} x ${working_canvas.height}`;
+    image_info.classList.remove('hidden');
+}
+
+function enable_buttons() {
+    reset_button.disabled = false;
+    download_button.disabled = false;
+}
+
+/* ---------- Image loading ---------- */
+
+function load_image(source) {
+    source_image = source;
+    create_working_canvas_from(source_image, source_image.naturalWidth, source_image.naturalHeight);
+
+    canvas_placeholder.classList.add('hidden');
+    image_canvas.classList.remove('hidden');
+    overlay_canvas.classList.remove('hidden');
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    enable_buttons();
+}
+
+image_upload_input.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    upload_label_text.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const image = new Image();
+        image.onload = function() { load_image(image); };
+        image.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+/* Load from ?image= query param (linked from generate page) */
+const url_params = new URLSearchParams(window.location.search);
+const preload_image_url = url_params.get('image');
+if (preload_image_url) {
+    const image = new Image();
+    image.onload = function() { load_image(image); };
+    image.src = preload_image_url;
+}
+
+/* ---------- Crop ratio buttons ---------- */
+
+document.getElementById('crop-ratio-buttons').addEventListener('click', function(event) {
+    const button = event.target.closest('.crop-ratio-button');
+    if (!button || !working_canvas) return;
+
+    const ratio_key = button.dataset.ratio;
+
+    /* toggle off if clicking the same ratio */
+    if (active_ratio_key === ratio_key) {
+        deactivate_crop();
+        return;
+    }
+
+    active_ratio_key = ratio_key;
+    active_ratio_value = CROP_RATIOS[ratio_key];
+
+    /* highlight active button */
+    document.querySelectorAll('.crop-ratio-button').forEach(function(button) {
+        button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    });
+    button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+
+    compute_initial_crop();
+    draw_overlay();
+    apply_crop_button.disabled = false;
+});
+
+function deactivate_crop() {
+    active_ratio_key = null;
+    active_ratio_value = null;
+    apply_crop_button.disabled = true;
+    is_dragging = false;
+    is_resizing = false;
+
+    document.querySelectorAll('.crop-ratio-button').forEach(function(button) {
+        button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    });
+    overlay_context.clearRect(0, 0, overlay_canvas.width, overlay_canvas.height);
+}
+
+function compute_initial_crop() {
+    const canvas_width = overlay_canvas.width;
+    const canvas_height = overlay_canvas.height;
+    let crop_width, crop_height;
+
+    if (active_ratio_value === null) {
+        crop_width = canvas_width * 0.75;
+        crop_height = canvas_height * 0.75;
+    } else {
+        crop_height = Math.min(canvas_height * 0.75, (canvas_width * 0.75) / active_ratio_value);
+        crop_width = crop_height * active_ratio_value;
+        if (crop_width > canvas_width * 0.95) {
+            crop_width = canvas_width * 0.75;
+            crop_height = crop_width / active_ratio_value;
+        }
+    }
+
+    crop_rect = {
+        x: Math.round((canvas_width - crop_width) / 2),
+        y: Math.round((canvas_height - crop_height) / 2),
+        width: Math.round(crop_width),
+        height: Math.round(crop_height),
+    };
+}
+
+/* ---------- Draw crop overlay ---------- */
+
+function draw_overlay() {
+    if (active_ratio_key === null) return;
+
+    const width = overlay_canvas.width;
+    const height = overlay_canvas.height;
+    overlay_context.clearRect(0, 0, width, height);
+
+    /* dim outside */
+    overlay_context.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    overlay_context.fillRect(0, 0, width, height);
+    overlay_context.clearRect(crop_rect.x, crop_rect.y, crop_rect.width, crop_rect.height);
+
+    /* border */
+    overlay_context.strokeStyle = '#facc15';
+    overlay_context.lineWidth = 2;
+    overlay_context.strokeRect(crop_rect.x, crop_rect.y, crop_rect.width, crop_rect.height);
+
+    /* thirds grid */
+    overlay_context.strokeStyle = 'rgba(250, 204, 21, 0.25)';
+    overlay_context.lineWidth = 1;
+    for (let i = 1; i <= 2; i++) {
+        const vertical_x = crop_rect.x + (crop_rect.width / 3) * i;
+        overlay_context.beginPath();
+        overlay_context.moveTo(vertical_x, crop_rect.y);
+        overlay_context.lineTo(vertical_x, crop_rect.y + crop_rect.height);
+        overlay_context.stroke();
+
+        const horizontal_y = crop_rect.y + (crop_rect.height / 3) * i;
+        overlay_context.beginPath();
+        overlay_context.moveTo(crop_rect.x, horizontal_y);
+        overlay_context.lineTo(crop_rect.x + crop_rect.width, horizontal_y);
+        overlay_context.stroke();
+    }
+
+    /* corner handles */
+    overlay_context.fillStyle = '#facc15';
+    const corners = get_corners();
+    for (const position of Object.values(corners)) {
+        overlay_context.fillRect(position.x - HANDLE_SIZE / 2, position.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+    }
+
+    /* label */
+    const label = active_ratio_key === 'free' ? 'Free' : active_ratio_key;
+    const real_width = Math.round(crop_rect.width / display_scale);
+    const real_height = Math.round(crop_rect.height / display_scale);
+    overlay_context.fillStyle = 'rgba(0,0,0,0.6)';
+    overlay_context.fillRect(crop_rect.x, crop_rect.y - 22, 140, 20);
+    overlay_context.fillStyle = '#facc15';
+    overlay_context.font = '12px system-ui, sans-serif';
+    overlay_context.fillText(`${label}  ${real_width} x ${real_height}`, crop_rect.x + 4, crop_rect.y - 7);
+}
+
+/* ---------- Crop interaction (drag + resize) ---------- */
+
+function get_corners() {
+    return {
+        'top-left':     { x: crop_rect.x, y: crop_rect.y },
+        'top-right':    { x: crop_rect.x + crop_rect.width, y: crop_rect.y },
+        'bottom-left':  { x: crop_rect.x, y: crop_rect.y + crop_rect.height },
+        'bottom-right': { x: crop_rect.x + crop_rect.width, y: crop_rect.y + crop_rect.height },
+    };
+}
+
+function get_handle_at(pointer_x, pointer_y) {
+    const corners = get_corners();
+    for (const [name, position] of Object.entries(corners)) {
+        if (Math.abs(pointer_x - position.x) <= HANDLE_SIZE && Math.abs(pointer_y - position.y) <= HANDLE_SIZE) {
+            return name;
+        }
+    }
+    return '';
+}
+
+function is_inside_crop(pointer_x, pointer_y) {
+    return pointer_x >= crop_rect.x && pointer_x <= crop_rect.x + crop_rect.width &&
+           pointer_y >= crop_rect.y && pointer_y <= crop_rect.y + crop_rect.height;
+}
+
+function clamp_crop() {
+    crop_rect.width = Math.max(20, crop_rect.width);
+    crop_rect.height = Math.max(20, crop_rect.height);
+    crop_rect.x = Math.max(0, Math.min(crop_rect.x, overlay_canvas.width - crop_rect.width));
+    crop_rect.y = Math.max(0, Math.min(crop_rect.y, overlay_canvas.height - crop_rect.height));
+}
+
+function get_pointer(event) {
+    const rect = overlay_canvas.getBoundingClientRect();
+    const client_x = event.touches ? event.touches[0].clientX : event.clientX;
+    const client_y = event.touches ? event.touches[0].clientY : event.clientY;
+    return { x: client_x - rect.left, y: client_y - rect.top };
+}
+
+function on_pointer_down(event) {
+    if (active_ratio_key === null) return;
+    const pointer = get_pointer(event);
+
+    const handle = get_handle_at(pointer.x, pointer.y);
+    if (handle) {
+        is_resizing = true;
+        active_handle = handle;
+        drag_start = pointer;
+        event.preventDefault();
+        return;
+    }
+
+    if (is_inside_crop(pointer.x, pointer.y)) {
+        is_dragging = true;
+        drag_start = { x: pointer.x - crop_rect.x, y: pointer.y - crop_rect.y };
+        event.preventDefault();
+    }
+}
+
+function on_pointer_move(event) {
+    if (active_ratio_key === null) return;
+    const pointer = get_pointer(event);
+
+    if (is_resizing) {
+        resize_crop(pointer);
+        draw_overlay();
+        event.preventDefault();
+        return;
+    }
+
+    if (is_dragging) {
+        crop_rect.x = pointer.x - drag_start.x;
+        crop_rect.y = pointer.y - drag_start.y;
+        clamp_crop();
+        draw_overlay();
+        event.preventDefault();
+        return;
+    }
+
+    /* cursor feedback */
+    const handle = get_handle_at(pointer.x, pointer.y);
+    if (handle === 'top-left' || handle === 'bottom-right') {
+        overlay_canvas.style.cursor = 'nwse-resize';
+    } else if (handle === 'top-right' || handle === 'bottom-left') {
+        overlay_canvas.style.cursor = 'nesw-resize';
+    } else if (is_inside_crop(pointer.x, pointer.y)) {
+        overlay_canvas.style.cursor = 'move';
+    } else {
+        overlay_canvas.style.cursor = 'default';
+    }
+}
+
+function resize_crop(pointer) {
+    const min_size = 20;
+    let new_x = crop_rect.x, new_y = crop_rect.y;
+    let new_width = crop_rect.width, new_height = crop_rect.height;
+
+    const right_edge = crop_rect.x + crop_rect.width;
+    const bottom_edge = crop_rect.y + crop_rect.height;
+
+    if (active_handle.includes('right')) {
+        new_width = Math.max(min_size, pointer.x - crop_rect.x);
+    }
+    if (active_handle.includes('left')) {
+        new_width = Math.max(min_size, right_edge - pointer.x);
+        new_x = Math.min(pointer.x, right_edge - min_size);
+    }
+    if (active_handle.includes('bottom')) {
+        new_height = Math.max(min_size, pointer.y - crop_rect.y);
+    }
+    if (active_handle.includes('top')) {
+        new_height = Math.max(min_size, bottom_edge - pointer.y);
+        new_y = Math.min(pointer.y, bottom_edge - min_size);
+    }
+
+    /* enforce ratio */
+    if (active_ratio_value !== null) {
+        if (active_handle.includes('left') || active_handle.includes('right')) {
+            new_height = new_width / active_ratio_value;
+            if (active_handle.includes('top')) new_y = bottom_edge - new_height;
+        } else {
+            new_width = new_height * active_ratio_value;
+            if (active_handle.includes('left')) new_x = right_edge - new_width;
+        }
+    }
+
+    /* keep in bounds */
+    if (new_x < 0) { new_width += new_x; new_x = 0; }
+    if (new_y < 0) { new_height += new_y; new_y = 0; }
+    if (new_x + new_width > overlay_canvas.width) new_width = overlay_canvas.width - new_x;
+    if (new_y + new_height > overlay_canvas.height) new_height = overlay_canvas.height - new_y;
+
+    if (active_ratio_value !== null) {
+        const constrained = Math.min(new_width, new_height * active_ratio_value);
+        new_width = constrained;
+        new_height = constrained / active_ratio_value;
+    }
+
+    if (new_width >= min_size && new_height >= min_size) {
+        crop_rect = { x: new_x, y: new_y, width: new_width, height: new_height };
+    }
+}
+
+function on_pointer_up() {
+    is_dragging = false;
+    is_resizing = false;
+}
+
+overlay_canvas.addEventListener('mousedown', on_pointer_down);
+overlay_canvas.addEventListener('mousemove', on_pointer_move);
+overlay_canvas.addEventListener('mouseup', on_pointer_up);
+overlay_canvas.addEventListener('mouseleave', on_pointer_up);
+overlay_canvas.addEventListener('touchstart', on_pointer_down, { passive: false });
+overlay_canvas.addEventListener('touchmove', on_pointer_move, { passive: false });
+overlay_canvas.addEventListener('touchend', on_pointer_up);
+
+/* ---------- Apply crop ---------- */
+
+apply_crop_button.addEventListener('click', function() {
+    if (active_ratio_key === null || !working_canvas) return;
+
+    /* map display crop_rect back to working canvas pixels */
+    const source_x = Math.round(crop_rect.x / display_scale);
+    const source_y = Math.round(crop_rect.y / display_scale);
+    const source_width = Math.round(crop_rect.width / display_scale);
+    const source_height = Math.round(crop_rect.height / display_scale);
+
+    const cropped_canvas = document.createElement('canvas');
+    cropped_canvas.width = source_width;
+    cropped_canvas.height = source_height;
+    const cropped_context = cropped_canvas.getContext('2d');
+    cropped_context.drawImage(working_canvas, source_x, source_y, source_width, source_height, 0, 0, source_width, source_height);
+
+    /* replace working canvas */
+    working_canvas = cropped_canvas;
+    working_context = cropped_context;
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+});
+
+/* ---------- Rotate / Flip ---------- */
+
+function apply_transform(transform_function) {
+    if (!working_canvas) return;
+
+    const result_canvas = document.createElement('canvas');
+    const result_context = result_canvas.getContext('2d');
+    transform_function(result_canvas, result_context, working_canvas);
+
+    working_canvas = result_canvas;
+    working_context = result_context;
+
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+}
+
+document.getElementById('rotate-left-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.height;
+        destination.height = source.width;
+        destination_context.translate(0, destination.height);
+        destination_context.rotate(-Math.PI / 2);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('rotate-right-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.height;
+        destination.height = source.width;
+        destination_context.translate(destination.width, 0);
+        destination_context.rotate(Math.PI / 2);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('flip-horizontal-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.width;
+        destination.height = source.height;
+        destination_context.translate(destination.width, 0);
+        destination_context.scale(-1, 1);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+document.getElementById('flip-vertical-button').addEventListener('click', function() {
+    apply_transform(function(destination, destination_context, source) {
+        destination.width = source.width;
+        destination.height = source.height;
+        destination_context.translate(0, destination.height);
+        destination_context.scale(1, -1);
+        destination_context.drawImage(source, 0, 0);
+    });
+});
+
+/* ---------- Reset ---------- */
+
+reset_button.addEventListener('click', function() {
+    if (!source_image) return;
+    create_working_canvas_from(source_image, source_image.naturalWidth, source_image.naturalHeight);
+    deactivate_crop();
+    fit_canvas_to_wrapper();
+    render_image();
+});
+
+/* ---------- Download ---------- */
+
+download_button.addEventListener('click', function() {
+    if (!working_canvas) return;
+    const link = document.createElement('a');
+    link.download = 'edited-image.png';
+    link.href = working_canvas.toDataURL('image/png');
+    link.click();
+});
+
+/* ---------- Resize handler ---------- */
+
+window.addEventListener('resize', function() {
+    if (!working_canvas) return;
+    fit_canvas_to_wrapper();
+    if (active_ratio_key !== null) {
+        compute_initial_crop();
+        draw_overlay();
+    }
+});
+</script>
+{% endblock %}
