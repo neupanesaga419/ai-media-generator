@@ -71,6 +71,14 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs text-gray-400 mb-1">Orientation</label>
+                    <div class="flex gap-1.5">
+                        <button type="button" id="orientation-portrait-button" class="flex-1 rounded-md bg-brand-600 border border-brand-500 px-2 py-1.5 text-xs text-white transition">Portrait</button>
+                        <button type="button" id="orientation-landscape-button" class="flex-1 rounded-md bg-gray-800 border border-gray-700 px-2 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition">Landscape</button>
+                    </div>
+                </div>
+
+                <div>
                     <label for="photo-size-select" class="block text-xs text-gray-400 mb-1">Photo Size</label>
                     <select id="photo-size-select" class="w-full rounded-md bg-gray-800 border border-gray-700 text-gray-200 px-2 py-1.5 text-xs focus:ring-brand-500 focus:border-brand-500">
                         <option value="passport_35x45">Passport (35 x 45 mm)</option>
@@ -676,6 +684,8 @@ const PHOTO_SIZES = {
 
 const paper_size_select = document.getElementById('paper-size-select');
 const photo_size_select = document.getElementById('photo-size-select');
+const orientation_portrait_button = document.getElementById('orientation-portrait-button');
+const orientation_landscape_button = document.getElementById('orientation-landscape-button');
 const layout_spacing_input = document.getElementById('layout-spacing-input');
 const layout_border_input = document.getElementById('layout-border-input');
 const spacing_value_label = document.getElementById('spacing-value-label');
@@ -686,6 +696,25 @@ const layout_summary = document.getElementById('layout-summary');
 const layout_summary_text = document.getElementById('layout-summary-text');
 
 let print_layout_canvas = null;
+let paper_orientation = 'portrait';  /* 'portrait' or 'landscape' */
+
+orientation_portrait_button.addEventListener('click', function() {
+    paper_orientation = 'portrait';
+    orientation_portrait_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_portrait_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    orientation_landscape_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_landscape_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    update_layout_summary();
+});
+
+orientation_landscape_button.addEventListener('click', function() {
+    paper_orientation = 'landscape';
+    orientation_landscape_button.classList.add('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_landscape_button.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    orientation_portrait_button.classList.remove('bg-brand-600', 'border-brand-500', 'text-white');
+    orientation_portrait_button.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+    update_layout_summary();
+});
 
 function mm_to_pixels(millimeters) {
     return Math.round((millimeters / MM_PER_INCH) * DPI);
@@ -703,8 +732,9 @@ function compute_layout() {
     const spacing_mm = parseInt(layout_spacing_input.value);
     const border_mm = parseInt(layout_border_input.value);
 
-    const paper_width_pixels = inches_to_pixels(paper.width_inches);
-    const paper_height_pixels = inches_to_pixels(paper.height_inches);
+    const is_landscape = paper_orientation === 'landscape';
+    const paper_width_pixels = inches_to_pixels(is_landscape ? paper.height_inches : paper.width_inches);
+    const paper_height_pixels = inches_to_pixels(is_landscape ? paper.width_inches : paper.height_inches);
     const spacing_pixels = mm_to_pixels(spacing_mm);
     const border_pixels = mm_to_pixels(border_mm);
 
