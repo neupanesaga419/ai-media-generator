@@ -3,7 +3,7 @@ import logging
 
 from google import genai
 from google.genai import types
-from PIL import Image
+from PIL import Image, ImageOps
 from google.oauth2 import service_account
 from .base import BaseImageGenerator
 
@@ -15,6 +15,7 @@ GOOGLE_MODELS_PREFIX = "models/"
 def _convert_raw_image_to_png(raw_image_bytes: bytes) -> bytes:
     """Convert raw image bytes (any format) to PNG bytes."""
     image = Image.open(io.BytesIO(raw_image_bytes))
+    image = ImageOps.exif_transpose(image)
     output_buffer = io.BytesIO()
     image.save(output_buffer, format="PNG")
     return output_buffer.getvalue()
@@ -125,8 +126,13 @@ class GoogleImageGenerator(BaseImageGenerator):
         Sends the image + text prompt to Gemini and gets a modified image back.
         No mask needed — Gemini interprets the edit from the prompt.
         """
-        image_bytes = input_image.read()
-        mime_type = getattr(input_image, "content_type", "image/png")
+        raw_bytes = input_image.read()
+        image = Image.open(io.BytesIO(raw_bytes))
+        image = ImageOps.exif_transpose(image)
+        normalized_buffer = io.BytesIO()
+        image.save(normalized_buffer, format="PNG")
+        image_bytes = normalized_buffer.getvalue()
+        mime_type = "image/png"
 
         response = self.client.models.generate_content(
             model="gemini-2.5-flash-image",
