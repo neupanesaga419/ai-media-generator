@@ -27,11 +27,14 @@ def _is_gemini_model(model_name: str) -> bool:
 
 
 def _is_image_generation_model(model_name: str) -> bool:
-    """Check if a model name corresponds to an image generation model."""
+    """Check if a model name corresponds to an Imagen generation model.
+
+    Gemini models (gemini-2.5-flash, gemini-3.1-flash, etc.) are excluded
+    because they require the Gemini API, but this app uses Vertex AI.
+    They are still used internally for image editing via a hardcoded model.
+    """
     name_lower = model_name.lower()
-    is_imagen = "imagen" in name_lower and "generate" in name_lower
-    is_gemini_image = "gemini" in name_lower and "image" in name_lower
-    return is_imagen or is_gemini_image
+    return "imagen" in name_lower and "generate" in name_lower
 
 
 def _strip_models_prefix(model_name: str) -> str:
