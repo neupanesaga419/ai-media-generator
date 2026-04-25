@@ -1,11 +1,13 @@
 import io
 import logging
+import os
 
 from google import genai
 from google.genai import types
 from PIL import Image, ImageOps
 from google.oauth2 import service_account
 from .base import BaseImageGenerator
+# from google.cloud import aiplatform
 
 logger = logging.getLogger(__name__)
 
@@ -157,18 +159,21 @@ class GoogleImageGenerator(BaseImageGenerator):
                 return _convert_raw_image_to_png(part.inline_data.data)
         raise RuntimeError("Gemini did not return an image in the response.")
 
-    @classmethod
-    def fetch_available_models(cls, api_key: str) -> list[str]:
+    
+    def fetch_available_models(self,) -> list[str]:
         """Fetch image generation models from the Google GenAI API."""
-        client = genai.Client(api_key=api_key)
+        # client = genai.Client(api_key=api_key)
         available_models = []
 
+
         try:
-            for model in client.models.list():
+            for model in self.client.models.list():
                 if _is_image_generation_model(model.name):
                     clean_name = _strip_models_prefix(model.name)
                     available_models.append(clean_name)
         except Exception as error:
             logger.error("Failed to fetch Google models: %s", error)
+
+        # models = cls.client.models.list()
 
         return available_models

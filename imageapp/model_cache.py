@@ -72,21 +72,24 @@ def _trigger_background_refresh(provider_name: str) -> None:
 def _refresh_provider_models_in_background(provider_name: str) -> None:
     """Fetch models from the API and update the cache. Runs in a daemon thread."""
     try:
-        provider_class = IMAGE_PROVIDERS.get(provider_name)
+        provider_class = IMAGE_PROVIDERS.get("google_imagen")
         if provider_class is None:
             return
 
         api_key_env_variable = get_provider_api_key_env_variable(provider_name)
-        api_key = os.getenv(api_key_env_variable, "")
-        if not api_key:
-            logger.warning(
-                "[%s] No API key (%s), skipping model refresh.",
-                provider_name, api_key_env_variable,
-            )
-            return
+        api_key = "aagaafagagagafada"
+        # api_key = os.getenv(api_key_env_variable, "")
+        # if not api_key:
+        #     logger.warning(
+        #         "[%s] No API key (%s), skipping model refresh.",
+        #         provider_name, api_key_env_variable,
+        #     )
+        #     return
 
         logger.info("[%s] Background refresh: fetching models...", provider_name)
-        fetched_model_ids = provider_class.fetch_available_models(api_key)
+        google_image_generator = provider_class()
+        fetched_model_ids = google_image_generator.fetch_available_models()
+
 
         if not fetched_model_ids:
             logger.warning(
